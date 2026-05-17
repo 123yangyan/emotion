@@ -1,0 +1,14 @@
+node_modules
+out
+release
+dist
+*.log
+.DS_Store
+Thumbs.db
+Desktop.ini
+.env
+.env.*
+
+# 一次性本地修补脚本，不纳入版本库
+scripts/fix-*.js
+scripts/patch-*.js

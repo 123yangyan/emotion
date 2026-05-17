@@ -1,0 +1,65 @@
+{
+  "name": "emotion-diary",
+  "version": "1.0.0",
+  "description": "Windows 情绪记录 · 本地离线 · 强提醒",
+  "main": "./out/main/index.js",
+  "author": "123yangyan",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/123yangyan/emotion.git"
+  },
+  "homepage": "https://github.com/123yangyan/emotion#readme",
+  "bugs": {
+    "url": "https://github.com/123yangyan/emotion/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "dist": "npm run build && electron-builder --win"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "recharts": "^2.15.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^3.0.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.6"
+  },
+  "build": {
+    "appId": "com.emotion.diary",
+    "productName": "情绪记录",
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "files": ["out/**/*", "package.json"],
+    "extraResources": [
+      {
+        "from": "resources/tray-icon.png",
+        "to": "tray-icon.png"
+      },
+      {
+        "from": "resources/tray-icon@2x.png",
+        "to": "tray-icon@2x.png"
+      }
+    ]
+  }
+}
