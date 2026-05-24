@@ -4,7 +4,8 @@ import {
   Tray,
   Menu,
   ipcMain,
-  dialog
+  dialog,
+  shell
 } from 'electron'
 import { join } from 'path'
 import { writeFileSync } from 'fs'
@@ -39,6 +40,14 @@ import {
   getCheckPollIntervalMs
 } from './daily-checkin-service'
 import { loadTrayIcon } from './trayIcon'
+import {
+  initAutoUpdater,
+  setUpdateWindowGetter,
+  getUpdateInfo,
+  checkForAppUpdate,
+  downloadAppUpdate,
+  installAppUpdate
+} from './update-service'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -69,6 +78,7 @@ function createMainWindow(): void {
   })
 
   setMainWindowGetter(() => mainWindow)
+  setUpdateWindowGetter(() => mainWindow)
 
   if (process.env.ELECTRON_RENDERER_URL) {
     void mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
@@ -201,6 +211,18 @@ function registerIpc(): void {
     recordCheckInSnooze()
     return { ok: true }
   })
+
+  ipcMain.handle('update:getInfo', () => getUpdateInfo())
+  ipcMain.handle('update:check', () => checkForAppUpdate())
+  ipcMain.handle('update:download', () => downloadAppUpdate())
+  ipcMain.handle('update:install', () => {
+    installAppUpdate()
+    return { ok: true }
+  })
+  ipcMain.handle('app:openExternal', (_e, url: string) => {
+    void shell.openExternal(url)
+    return { ok: true }
+  })
 }
 
 function restartCheckInTimer(): void {
@@ -212,6 +234,7 @@ function restartCheckInTimer(): void {
 
 app.whenReady().then(() => {
   initDatabase()
+  initAutoUpdater()
   registerIpc()
   createMainWindow()
   createTray()

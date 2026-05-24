@@ -2211,6 +2211,30 @@ hr {
   margin: 4px 0 8px;
 }
 
+.app-update-panel__version {
+  margin: 0 0 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.app-update-panel__ok {
+  color: var(--positive);
+}
+
+.app-update-panel__new {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.app-update-panel__error {
+  margin: 0 0 8px;
+}
+
+.app-update-panel__actions {
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
 .quiet-box h3 {
   margin: 0 0 6px;
   font-size: 0.95rem;

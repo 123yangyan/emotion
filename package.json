@@ -1,6 +1,6 @@
 {
   "name": "emotion-diary",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Windows 情绪记录 · 本地离线 · 强提醒",
   "main": "./out/main/index.js",
   "author": "123yangyan",
@@ -23,6 +23,7 @@
     "dist": "npm run build && electron-builder --win"
   },
   "dependencies": {
+    "electron-updater": "^6.8.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.15.0"
@@ -43,6 +44,14 @@
     "directories": {
       "output": "release"
     },
+    "artifactName": "emotion-diary-setup-${version}.${ext}",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "123yangyan",
+        "repo": "emotion"
+      }
+    ],
     "win": {
       "target": [
         "nsis"

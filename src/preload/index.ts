@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { EntryInput, EntryRow } from '../main/database'
 import type { AppSettings } from '../shared/types'
 
+import type { UpdateCheckResponse } from '../shared/update'
+
 const api = {
   createEntry: (input: EntryInput): Promise<EntryRow> => ipcRenderer.invoke('entry:create', input),
   listToday: (dateStr?: string): Promise<EntryRow[]> => ipcRenderer.invoke('entry:listToday', dateStr),
@@ -34,7 +36,24 @@ const api = {
     delaySeconds?: number
     remainingSeconds?: number
   }> => ipcRenderer.invoke('reminder:testStatus'),
-  snoozeCheckIn: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('checkin:snooze')
+  snoozeCheckIn: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('checkin:snooze'),
+  getUpdateInfo: (): Promise<{ currentVersion: string; canCheck: boolean }> =>
+    ipcRenderer.invoke('update:getInfo'),
+  checkForUpdate: (): Promise<UpdateCheckResponse> => ipcRenderer.invoke('update:check'),
+  downloadUpdate: (): Promise<{ ok: true } | { ok: false; message: string }> =>
+    ipcRenderer.invoke('update:download'),
+  installUpdate: (): Promise<{ ok: true }> => ipcRenderer.invoke('update:install'),
+  openExternalUrl: (url: string): Promise<{ ok: boolean }> =>
+    ipcRenderer.invoke('app:openExternal', url),
+  onUpdateProgress: (callback: (percent: number) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, payload: { percent: number }): void => {
+      callback(payload.percent)
+    }
+    ipcRenderer.on('update:progress', handler)
+    return () => {
+      ipcRenderer.removeListener('update:progress', handler)
+    }
+  }
 }
 
 contextBridge.exposeInMainWorld('api', api)

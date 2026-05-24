@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { AppSettings, TagListsConfig } from '../../../shared/types'
 import { defaultTagLists, resolveTagLists } from '../data/tagLists'
 import SettingsTagLists from './SettingsTagLists'
+import AppUpdatePanel from './AppUpdatePanel'
 import { ZH } from '../i18n/zh'
 
 interface Props {
@@ -179,6 +180,10 @@ export default function SettingsPage({ onToast, onTagsSaved }: Props) {
           {ZH.saveSettings}
         </button>
       </div>
+
+      <hr />
+
+      <AppUpdatePanel />
 
       <hr />
 

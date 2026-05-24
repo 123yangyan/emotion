@@ -1,5 +1,6 @@
 import type { EntryInput, EntryRow } from '../main/database'
 import type { AppSettings } from '../shared/types'
+import type { UpdateCheckResponse } from '../shared/update'
 
 export interface ElectronAPI {
   createEntry: (input: EntryInput) => Promise<EntryRow>
@@ -29,6 +30,12 @@ export interface ElectronAPI {
     remainingSeconds?: number
   }>
   snoozeCheckIn: () => Promise<{ ok: boolean }>
+  getUpdateInfo: () => Promise<{ currentVersion: string; canCheck: boolean }>
+  checkForUpdate: () => Promise<UpdateCheckResponse>
+  downloadUpdate: () => Promise<{ ok: true } | { ok: false; message: string }>
+  installUpdate: () => Promise<{ ok: true }>
+  openExternalUrl: (url: string) => Promise<{ ok: boolean }>
+  onUpdateProgress: (callback: (percent: number) => void) => () => void
 }
 
 declare global {
