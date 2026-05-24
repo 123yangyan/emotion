@@ -59,7 +59,7 @@ function createMainWindow(): void {
     height: 720,
     minWidth: 800,
     minHeight: 600,
-    title: '情绪记录',
+    title: '真我状态记录',
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -87,7 +87,7 @@ function createMainWindow(): void {
 function createTray(): void {
   const icon = loadTrayIcon()
   tray = new Tray(icon)
-  tray.setToolTip('情绪记录')
+  tray.setToolTip('真我状态记录')
   const contextMenu = Menu.buildFromTemplate([
     {
       label: '打开主窗口',
@@ -97,7 +97,7 @@ function createTray(): void {
       }
     },
     {
-      label: '记录今天的心情',
+      label: '记录此刻的状态',
       click: () => openCheckInWindow()
     },
     {
@@ -167,7 +167,7 @@ function registerIpc(): void {
   ipcMain.handle('export:json', async () => {
     const data = exportAllEntries()
     const result = await dialog.showSaveDialog(mainWindow!, {
-      title: '导出情绪记录',
+      title: '导出状态记录',
       defaultPath: `emotion-export-${new Date().toISOString().slice(0, 10)}.json`,
       filters: [{ name: 'JSON', extensions: ['json'] }]
     })

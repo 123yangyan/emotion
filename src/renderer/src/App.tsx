@@ -9,8 +9,8 @@ import { ZH } from './i18n/zh'
 
 type Tab = 'record' | 'history' | 'chart' | 'analysis' | 'settings'
 
-/** 设为 true 可在顶栏重新显示「今日曲线」页签（DayChart 组件仍保留） */
-const SHOW_CHART_TAB = false
+/** 设为 true 可在顶栏重新显示「今日曲线」页签（含四象限矩阵，DayChart 组件仍保留） */
+const SHOW_CHART_TAB = true
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'record', label: ZH.tabRecord },
@@ -71,12 +71,14 @@ export default function App() {
         </div>
       </header>
 
-      <main className="main">
+      <main className={tab === 'record' ? 'main main--record' : 'main'}>
         {tab === 'record' && (
-          <RecordForm
-            key={tagListsVersion}
-            onSaved={() => showToast(ZH.toastSaved)}
-          />
+          <div className="main-record">
+            <RecordForm
+              key={tagListsVersion}
+              onSaved={() => showToast(ZH.toastSaved)}
+            />
+          </div>
         )}
         {tab === 'history' && (
           <EntryHistoryPage

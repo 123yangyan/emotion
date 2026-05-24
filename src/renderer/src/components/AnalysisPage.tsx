@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { EntryRow } from '../../../main/database'
 import { BEHAVIOR_TAGS, EMOTIONS } from '../data/emotions'
-import { buildEmotionLabelMap, resolveTagLists } from '../data/tagLists'
+import { buildEmotionLabelMap, resolveTagLists, type TagListsConfig } from '../data/tagLists'
 import { ZH } from '../i18n/zh'
 import {
   buildPanoramaPoints,
@@ -37,6 +37,7 @@ export default function AnalysisPage({ onEditEntry }: Props): JSX.Element {
     buildEmotionLabelMap(resolveTagLists(), EMOTIONS)
   )
   const [thoughtTags, setThoughtTags] = useState<string[]>(() => resolveTagLists().thoughtTags)
+  const [tagLists, setTagLists] = useState<TagListsConfig>(() => resolveTagLists())
 
   const behaviorLabels = useMemo(() => {
     const lists = resolveTagLists()
@@ -52,6 +53,7 @@ export default function AnalysisPage({ onEditEntry }: Props): JSX.Element {
     const lists = resolveTagLists(settings.tagLists)
     setEmotionLabels(buildEmotionLabelMap(lists, EMOTIONS))
     setThoughtTags(lists.thoughtTags)
+    setTagLists(lists)
     setLoading(false)
   }, [range])
 
@@ -67,13 +69,13 @@ export default function AnalysisPage({ onEditEntry }: Props): JSX.Element {
   }, [range])
 
   const points: PanoramaPoint[] = useMemo(
-    () => buildPanoramaPoints(entries, emotionLabels, behaviorLabels, range),
-    [entries, emotionLabels, behaviorLabels, range]
+    () => buildPanoramaPoints(entries, emotionLabels, behaviorLabels, range, tagLists),
+    [entries, emotionLabels, behaviorLabels, range, tagLists]
   )
 
   const frequencies = useMemo(
-    () => computeFrequencies(points, emotionLabels, entries),
-    [points, emotionLabels, entries]
+    () => computeFrequencies(points, emotionLabels, entries, tagLists),
+    [points, emotionLabels, entries, tagLists]
   )
 
   // 可导航的记录 id 列表（有筛选时仅在筛选集合内切换）

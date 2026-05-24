@@ -33,7 +33,7 @@ function pickPointFromChartEvent(
   return payload ?? null
 }
 
-/** 双向情绪潮汐图 */
+/** 真我 / 伪装潮汐图 */
 export default function PanoramaTimeline({
   points,
   selectedId,
@@ -86,9 +86,9 @@ export default function PanoramaTimeline({
               <YAxis
                 domain={[-4, 4]}
                 ticks={[-4, -2, 0, 2, 4]}
-                width={32}
+                width={36}
                 tick={{ fontSize: 11 }}
-                tickFormatter={(v) => String(5 + Number(v))}
+                tickFormatter={(v) => ZH.panoramaTideTick(Number(v))}
               />
               <ReferenceLine y={0} stroke="#9ca3af" strokeWidth={1.5} strokeDasharray="4 4" />
               <Tooltip
@@ -98,7 +98,7 @@ export default function PanoramaTimeline({
                   return (
                     <div className="chart-tooltip panorama-tooltip">
                       <p className="chart-tooltip__time">{p.timeLabel}</p>
-                      <p>{ZH.intensityLabel(p.intensity)}</p>
+                      <p>{ZH.panoramaTideLabel(p.tideValue)}</p>
                       <p>{p.emotionLabels}</p>
                       {p.factTags.length > 0 ? (
                         <p>
@@ -108,11 +108,6 @@ export default function PanoramaTimeline({
                       {p.thoughtRaw ? (
                         <p>
                           {ZH.chartTooltipThought}：{p.thoughtRaw}
-                        </p>
-                      ) : null}
-                      {p.bodyParts.length > 0 ? (
-                        <p>
-                          {ZH.chartTooltipBody}：{p.bodyParts.join(ZH.emotionJoin)}
                         </p>
                       ) : null}
                       <p className="hint">{ZH.panoramaClickHint}</p>

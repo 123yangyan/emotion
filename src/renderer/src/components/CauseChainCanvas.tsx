@@ -18,10 +18,6 @@ export default function CauseChainCanvas({ insights, emotionLabels }: Props): JS
         <ul className="cause-chain-list">
           {insights.map((item, idx) => {
             const facts = item.factPattern.join(ZH.emotionJoin)
-            const bodies =
-              item.bodyPattern.length > 0
-                ? item.bodyPattern.join(ZH.emotionJoin)
-                : ZH.causeBodyUnknown
             const emotions =
               item.emotionIds
                 .map((id) => emotionLabels.get(id) ?? id)
@@ -37,8 +33,6 @@ export default function CauseChainCanvas({ insights, emotionLabels }: Props): JS
                 <p className="cause-chain-card__text">
                   {ZH.causeInsightIntro}
                   <strong>[{ZH.causeFactLabel}{facts}]</strong>
-                  {ZH.causeInsightMid}
-                  <strong>[{ZH.causeBodyLabel}{bodies}]</strong>
                   {ZH.causeInsightRate(item.triggerRate)}
                   {ZH.causeInsightTail}
                   <strong>
@@ -54,8 +48,6 @@ export default function CauseChainCanvas({ insights, emotionLabels }: Props): JS
                 </p>
                 <div className="cause-flow" aria-hidden>
                   <span className="cause-flow__node cause-flow__node--in">{ZH.causeFlowFact}</span>
-                  <span className="cause-flow__arrow" />
-                  <span className="cause-flow__node cause-flow__node--mid">{ZH.causeFlowBody}</span>
                   <span className="cause-flow__arrow" />
                   <span className="cause-flow__node cause-flow__node--out">{ZH.causeFlowEmotion}</span>
                 </div>

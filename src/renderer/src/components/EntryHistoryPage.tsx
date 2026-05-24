@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { EntryRow } from '../../../main/database'
-import { BEHAVIOR_TAGS, EMOTIONS } from '../data/emotions'
+import { EMOTIONS } from '../data/emotions'
 import { buildEmotionLabelMap, resolveTagLists } from '../data/tagLists'
 import { ZH } from '../i18n/zh'
 import {
@@ -37,9 +37,6 @@ export default function EntryHistoryPage({
     buildEmotionLabelMap(resolveTagLists(), EMOTIONS)
   )
   const [thoughtTags, setThoughtTags] = useState<string[]>(() => resolveTagLists().thoughtTags)
-  const [behaviorLabels, setBehaviorLabels] = useState(
-    () => new Map([...BEHAVIOR_TAGS, ...resolveTagLists().behaviorTags].map((b) => [b.id, b.label]))
-  )
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -49,9 +46,6 @@ export default function EntryHistoryPage({
     const lists = resolveTagLists(settings.tagLists)
     setEmotionLabels(buildEmotionLabelMap(lists, EMOTIONS))
     setThoughtTags(lists.thoughtTags)
-    setBehaviorLabels(
-      new Map([...BEHAVIOR_TAGS, ...lists.behaviorTags].map((b) => [b.id, b.label]))
-    )
     setLoading(false)
   }, [])
 
@@ -60,8 +54,8 @@ export default function EntryHistoryPage({
   }, [load, tagListsVersion])
 
   const rows: HistoryRowView[] = useMemo(
-    () => entries.map((e) => buildHistoryRowView(e, emotionLabels, thoughtTags, behaviorLabels)),
-    [entries, emotionLabels, thoughtTags, behaviorLabels]
+    () => entries.map((e) => buildHistoryRowView(e, emotionLabels, thoughtTags)),
+    [entries, emotionLabels, thoughtTags]
   )
 
   const totalPages = Math.max(1, Math.ceil(rows.length / HISTORY_PAGE_SIZE))
@@ -305,7 +299,7 @@ export default function EntryHistoryPage({
                     <div className="history-rows__date">{formatDateLabel(row.dateKey)}</div>
                   ) : null}
                   <div
-                    className={`history-row-item history-row history-row--${row.polarity} ${checked ? 'is-selected' : ''}`}
+                    className={`history-row-item history-row history-row--${row.polarity} ${row.isAvoidance ? 'history-row--avoidance' : ''} ${checked ? 'is-selected' : ''}`}
                     title={row.fullTitle}
                   >
                     {/* 左侧：复选框 + 核心内容，与操作按钮保持在同一视线范围内 */}
@@ -327,6 +321,9 @@ export default function EntryHistoryPage({
                               —
                             </span>
                             <span className="history-row__emotion">{row.emotionLabel}</span>
+                            {row.isAvoidance ? (
+                              <span className="history-row__avoidance-badge">{ZH.historyAvoidanceBadge}</span>
+                            ) : null}
                             <span className="history-row__intensity">
                               {row.intensity}
                               {'\u5206'}
@@ -360,15 +357,6 @@ export default function EntryHistoryPage({
                               {row.quoteText ? (
                                 <q className="history-row__quote">{row.quoteText}</q>
                               ) : null}
-                            </div>
-                          ) : null}
-                          {row.bodySummary ? (
-                            <div className="history-row__sub-body">
-                              <span className="history-row__body-label">
-                                <span aria-hidden>🫀 </span>
-                                {ZH.bodyMind}：
-                              </span>
-                              <span className="history-row__body-tags">{row.bodySummary}</span>
                             </div>
                           ) : null}
                         </div>

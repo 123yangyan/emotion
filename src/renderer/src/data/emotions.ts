@@ -1,4 +1,4 @@
-/** 情绪词典：分类 + 多选标签 */
+/** 系统状态词典：Zone 分类 + 录入标签 */
 export type EmotionPolarity = 'positive' | 'negative' | 'neutral'
 
 export interface EmotionItem {
@@ -7,8 +7,8 @@ export interface EmotionItem {
   polarity: EmotionPolarity
 }
 
-export const EMOTIONS: EmotionItem[] = [
-  // 消极
+/** 历史记录兼容：旧 CBT 情绪 id 保留供 label 查找 */
+const LEGACY_EMOTIONS: EmotionItem[] = [
   { id: 'anxious', label: '焦虑', polarity: 'negative' },
   { id: 'worried', label: '担忧', polarity: 'negative' },
   { id: 'angry', label: '愤怒', polarity: 'negative' },
@@ -29,7 +29,6 @@ export const EMOTIONS: EmotionItem[] = [
   { id: 'stressed', label: '压力大', polarity: 'negative' },
   { id: 'overwhelmed', label: '不堪重负', polarity: 'negative' },
   { id: 'numb_neg', label: '麻木（难受向）', polarity: 'negative' },
-  // 积极
   { id: 'happy', label: '开心', polarity: 'positive' },
   { id: 'grateful', label: '感激', polarity: 'positive' },
   { id: 'hopeful', label: '希望', polarity: 'positive' },
@@ -43,7 +42,6 @@ export const EMOTIONS: EmotionItem[] = [
   { id: 'peaceful_pos', label: '安宁', polarity: 'positive' },
   { id: 'interested', label: '有兴趣', polarity: 'positive' },
   { id: 'energetic', label: '有活力', polarity: 'positive' },
-  // 中性
   { id: 'calm', label: '平静', polarity: 'neutral' },
   { id: 'numb', label: '麻木', polarity: 'neutral' },
   { id: 'blank', label: '茫然', polarity: 'neutral' },
@@ -54,7 +52,30 @@ export const EMOTIONS: EmotionItem[] = [
   { id: 'alert', label: '警觉', polarity: 'neutral' }
 ]
 
-/** 发生场景标签：点选即可，可配合自由输入 */
+/** 真我哲学默认词：Zone-S / Zone-0 / Zone-H */
+export const ZONE_DEFAULT_EMOTIONS: EmotionItem[] = [
+  { id: 'zone_s_flow', label: '纯粹心流', polarity: 'positive' },
+  { id: 'zone_s_control', label: '掌控感', polarity: 'positive' },
+  { id: 'zone_s_ease', label: '游刃有余', polarity: 'positive' },
+  { id: 'zone_s_sovereignty', label: '绝对主权', polarity: 'positive' },
+  { id: 'zone_s_curiosity', label: '好奇驱动', polarity: 'positive' },
+  { id: 'zone_s_natural', label: '像呼吸一样自然', polarity: 'positive' },
+  { id: 'zone_0_mechanical', label: '机械执行', polarity: 'neutral' },
+  { id: 'zone_0_routine', label: '按部就班', polarity: 'neutral' },
+  { id: 'zone_0_still', label: '心如止水', polarity: 'neutral' },
+  { id: 'zone_0_observer', label: '旁观者模式', polarity: 'neutral' },
+  { id: 'zone_h_pleasing', label: '迎合外界', polarity: 'negative' },
+  { id: 'zone_h_persona', label: '强撑人设', polarity: 'negative' },
+  { id: 'zone_h_expectation', label: '过高期许', polarity: 'negative' },
+  { id: 'zone_h_forced', label: '被逼迫感', polarity: 'negative' },
+  { id: 'zone_h_drain', label: '无意义消耗', polarity: 'negative' },
+  { id: 'zone_h_rush', label: '急躁催促', polarity: 'negative' },
+  { id: 'zone_h_avoidance', label: '逃避记录', polarity: 'negative' }
+]
+
+export const EMOTIONS: EmotionItem[] = [...LEGACY_EMOTIONS, ...ZONE_DEFAULT_EMOTIONS]
+
+/** 外部触发器场景标签：点选即可，可配合自由输入 */
 export const FACT_SCENES = [
   '工作/学习',
   '在家',
@@ -67,23 +88,17 @@ export const FACT_SCENES = [
   '通勤路上',
   '完成了一件事',
   '运动/散步',
-  '娱乐放松',
-  '没什么特别'
+  '娱乐放松'
 ]
 
-/** 主观想法：软化担忧 + 中性观察 + 接纳与积极应对 */
+/** 内在剧本 / 参考系：高压标准 + 真我觉察 */
 export const THOUGHT_TAGS = [
-  '担心结果不如预期',
-  '有些自责',
-  '可能不太顺利',
-  '有点压力',
-  '还没完全想清楚',
-  '只是有点累了',
-  '没什么特别想法',
-  '允许自己有这种感受',
-  '我已经尽力了',
-  '这也会过去的',
-  '可以试试别的办法'
+  '我觉得不够完美',
+  '我必须让他人满意',
+  '如果搞砸了我就完了',
+  '这其实不是我的事',
+  '做不到就算了',
+  '我在享受这行代码'
 ]
 
 export const BODY_TAGS = [
@@ -115,43 +130,56 @@ export const DURATION_OPTIONS = [
 
 /** 设置页分组标题 */
 export const POLARITY_LABEL: Record<EmotionPolarity, string> = {
-  positive: '愉快',
-  negative: '低落',
-  neutral: '平稳'
+  positive: '真实自我区（Zone-S）',
+  negative: '角色扮演区（Zone-H）',
+  neutral: '待机观察区（Zone-0）'
 }
 
-/** 录入页情绪光谱：5 积极 + 5 中性 + 5 偏负（内省型，无高攻击性词） */
+/** 录入页光谱：6 Zone-S + 4 Zone-0 + 5 Zone-H（共 15 格） */
 export const SPECTRUM_EMOTION_IDS = [
-  'happy',
-  'grateful',
-  'relaxed',
-  'satisfied',
-  'warm',
-  'peaceful_pos',
-  'calm',
-  'curious',
-  'tired',
-  'blank',
-  'anxious',
-  'worried',
-  'frustrated',
-  'grieved',
-  'lonely'
+  'zone_s_flow',
+  'zone_s_control',
+  'zone_s_ease',
+  'zone_s_sovereignty',
+  'zone_s_curiosity',
+  'zone_s_natural',
+  'zone_0_mechanical',
+  'zone_0_routine',
+  'zone_0_still',
+  'zone_0_observer',
+  'zone_h_pleasing',
+  'zone_h_persona',
+  'zone_h_expectation',
+  'zone_h_forced',
+  'zone_h_drain'
 ] as const
 
-/** 旧用户词表 merge 时补齐的中性情绪 */
+/** 设置页 Zone-0 默认 */
 export const DEFAULT_NEUTRAL_EMOTION_IDS = [
-  'peaceful_pos',
-  'calm',
-  'curious',
-  'tired',
-  'blank'
+  'zone_0_mechanical',
+  'zone_0_routine',
+  'zone_0_still',
+  'zone_0_observer'
 ] as const
 
-/** 录入页常用情绪（由光谱派生，供设置页分组 fallback） */
+/** 设置页各 Zone 快捷词（光谱派生 + 完整 H 组第六项） */
 export const QUICK_EMOTION_IDS = {
-  positive: SPECTRUM_EMOTION_IDS.slice(0, 5),
-  negative: SPECTRUM_EMOTION_IDS.slice(10, 15)
+  positive: [
+    'zone_s_flow',
+    'zone_s_control',
+    'zone_s_ease',
+    'zone_s_sovereignty',
+    'zone_s_curiosity',
+    'zone_s_natural'
+  ],
+  negative: [
+    'zone_h_pleasing',
+    'zone_h_persona',
+    'zone_h_expectation',
+    'zone_h_forced',
+    'zone_h_drain',
+    'zone_h_rush'
+  ]
 } as const
 
 const emotionMap = new Map(EMOTIONS.map((e) => [e.id, e]))

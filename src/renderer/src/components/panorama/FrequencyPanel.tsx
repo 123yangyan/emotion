@@ -12,16 +12,18 @@ function RankList({
   items,
   emptyHint,
   activeLabel,
-  onItemClick
+  onItemClick,
+  featured = false
 }: {
   title: string
   items: FrequencyItem[]
   emptyHint: string
   activeLabel: string | null
   onItemClick: (item: FrequencyItem) => void
+  featured?: boolean
 }): JSX.Element {
   return (
-    <div className="freq-block">
+    <div className={`freq-block ${featured ? 'freq-block--featured' : ''}`}>
       <h4>{title}</h4>
       {items.length === 0 ? (
         <p className="hint freq-empty">{emptyHint}</p>
@@ -50,12 +52,31 @@ function RankList({
   )
 }
 
-/** 侧边栏：高频定音鼓（点击可高亮图表上的相关记录） */
+/** 侧边栏：真我画像高频统计（点击可高亮图表上的相关记录） */
 export default function FrequencyPanel({ frequencies, activeLabel, onItemClick }: Props): JSX.Element {
   return (
     <aside className="panorama-freq" aria-label={ZH.panoramaFreqTitle}>
       <h3>{ZH.panoramaFreqTitle}</h3>
       <p className="hint panorama-freq__desc">{ZH.panoramaFreqDesc}</p>
+      {frequencies.avoidanceCount > 0 ? (
+        <p className="panorama-freq__avoidance">{ZH.panoramaFreqAvoidance(frequencies.avoidanceCount)}</p>
+      ) : null}
+      <RankList
+        title={ZH.panoramaFreqPainTriggers}
+        items={frequencies.painTriggers}
+        emptyHint={ZH.panoramaFreqPainEmpty}
+        activeLabel={activeLabel}
+        onItemClick={onItemClick}
+        featured
+      />
+      <RankList
+        title={ZH.panoramaFreqRechargeHavens}
+        items={frequencies.rechargeHavens}
+        emptyHint={ZH.panoramaFreqRechargeEmpty}
+        activeLabel={activeLabel}
+        onItemClick={onItemClick}
+        featured
+      />
       <RankList
         title={ZH.panoramaFreqEmotionPleasant}
         items={frequencies.pleasantEmotions}
@@ -80,13 +101,6 @@ export default function FrequencyPanel({ frequencies, activeLabel, onItemClick }
       <RankList
         title={ZH.panoramaFreqThought}
         items={frequencies.thoughts}
-        emptyHint={ZH.panoramaFreqEmpty}
-        activeLabel={activeLabel}
-        onItemClick={onItemClick}
-      />
-      <RankList
-        title={ZH.panoramaFreqBody}
-        items={frequencies.bodyReactions}
         emptyHint={ZH.panoramaFreqEmpty}
         activeLabel={activeLabel}
         onItemClick={onItemClick}

@@ -1,4 +1,7 @@
 import type { EntryRow } from '../../../main/database'
+import type { TagListsConfig } from '../../../shared/types'
+import { isAvoidanceEntry } from './avoidanceEntry'
+import type { EmotionPolarity } from '../data/emotions'
 import { computeValence, getEmotionPolarity, valenceDotColor } from './dayAnalytics'
 import { parseEntries, parseFactField, type ParsedEntry } from './entryParse'
 
@@ -11,7 +14,7 @@ export interface PanoramaPoint {
   occurredAt: Date
   timeLabel: string
   intensity: number
-  /** 相对 5 分基准：1→-4，5→0，9→+4 */
+  /** 真我潮汐：Zone-S 向上 +1~+4，Zone-H 向下 -1~-4，Zone-0 贴基准线 */
   tideValue: number
   emotionLabels: string
   factTags: string[]
@@ -19,9 +22,10 @@ export interface PanoramaPoint {
   thoughtParts: string[]
   thoughtRaw: string
   bodyParts: string[]
+  behaviorIds: string[]
   valence: number
   valenceColor: string
-  polarity: 'positive' | 'negative' | 'neutral'
+  polarity: EmotionPolarity
 }
 
 export interface FrequencyItem {
@@ -32,6 +36,10 @@ export interface FrequencyItem {
 }
 
 export interface PanoramaFrequencies {
+  /** 剥夺掌控感的 Top3 外部触发器（Zone-H 关联场景） */
+  painTriggers: FrequencyItem[]
+  /** 满血复活的 Top3 行为/场景（Zone-S 关联场景） */
+  rechargeHavens: FrequencyItem[]
   pleasantEmotions: FrequencyItem[]
   steadyEmotions: FrequencyItem[]
   lowEmotions: FrequencyItem[]
@@ -39,6 +47,8 @@ export interface PanoramaFrequencies {
   negativeEmotions: FrequencyItem[]
   thoughts: FrequencyItem[]
   bodyReactions: FrequencyItem[]
+  /** 本时段 Esc 稍后自动写入的逃避记录次数 */
+  avoidanceCount: number
 }
 
 const JOIN = '\u3001'
@@ -80,8 +90,13 @@ function parseThoughtField(raw: string): string[] {
   return raw.split(JOIN).map((p) => p.trim()).filter(Boolean)
 }
 
-function tideValueFromIntensity(intensity: number): number {
-  return intensity - 5
+/** 真我潮汐：Zone-S 向上，Zone-H 向下，Zone-0 贴基准线 */
+export function tideValueFromZone(polarity: EmotionPolarity, intensity: number): number {
+  const raw = Math.abs(intensity - 5)
+  const magnitude = raw === 0 ? 1 : Math.min(4, raw)
+  if (polarity === 'positive') return magnitude
+  if (polarity === 'negative') return -magnitude
+  return 0
 }
 
 type FreqAcc = Map<string, { count: number; entryIds: number[] }>
@@ -103,14 +118,35 @@ function topCounts(map: FreqAcc, limit: number): FrequencyItem[] {
     .map(([label, { count, entryIds }]) => ({ label, count, entryIds }))
 }
 
+/** 按 Zone 统计外部触发器（factTags）出现频次 */
+function computeZoneFactFrequencies(
+  points: PanoramaPoint[],
+  zone: 'positive' | 'negative'
+): FrequencyItem[] {
+  const acc: FreqAcc = new Map()
+  for (const p of points) {
+    if (p.polarity !== zone) continue
+    if (p.factTags.length === 0) {
+      const note = p.factSupplement.trim()
+      if (note) bumpFreq(acc, note, p.id)
+      continue
+    }
+    for (const tag of p.factTags) {
+      bumpFreq(acc, tag, p.id)
+    }
+  }
+  return topCounts(acc, 3)
+}
+
 export function buildPanoramaPoints(
   rows: EntryRow[],
   emotionLabels: Map<string, string>,
   behaviorLabels: Map<string, string>,
-  range: PanoramaRange
+  range: PanoramaRange,
+  tagLists?: TagListsConfig
 ): PanoramaPoint[] {
   const parsed = parseEntries(rows)
-  return parsed.map((e) => pointFromParsed(e, rows, emotionLabels, behaviorLabels, range))
+  return parsed.map((e) => pointFromParsed(e, rows, emotionLabels, behaviorLabels, range, tagLists))
 }
 
 function pointFromParsed(
@@ -118,13 +154,14 @@ function pointFromParsed(
   rows: EntryRow[],
   emotionLabels: Map<string, string>,
   behaviorLabels: Map<string, string>,
-  range: PanoramaRange
+  range: PanoramaRange,
+  tagLists?: TagListsConfig
 ): PanoramaPoint {
   const row = rows.find((r) => r.id === e.id)!
   const emotionIds = e.emotionIds
   const labels = emotionIds.map((id) => emotionLabels.get(id) ?? id).join(JOIN)
-  const polarity = emotionIds[0] ? getEmotionPolarity(emotionIds[0]) : 'neutral'
-  const valence = computeValence(emotionIds[0])
+  const polarity = emotionIds[0] ? getEmotionPolarity(emotionIds[0], tagLists) : 'neutral'
+  const valence = computeValence(emotionIds[0], tagLists)
   const bodyParts = [
     ...e.bodyTags,
     ...e.behaviorIds.map((id) => {
@@ -139,13 +176,14 @@ function pointFromParsed(
     occurredAt: e.occurredAt,
     timeLabel: formatTimeLabel(e.occurredAt, range),
     intensity: e.intensity,
-    tideValue: tideValueFromIntensity(e.intensity),
+    tideValue: tideValueFromZone(polarity, e.intensity),
     emotionLabels: labels || '\u2014',
     factTags: tags,
     factSupplement: supplement,
     thoughtParts: parseThoughtField(row.thought),
     thoughtRaw: row.thought?.trim() ?? '',
     bodyParts,
+    behaviorIds: e.behaviorIds,
     valence,
     valenceColor: valenceDotColor(valence),
     polarity
@@ -155,21 +193,26 @@ function pointFromParsed(
 export function computeFrequencies(
   points: PanoramaPoint[],
   emotionLabels: Map<string, string>,
-  rows: EntryRow[]
+  rows: EntryRow[],
+  tagLists?: TagListsConfig
 ): PanoramaFrequencies {
   const pleasantEmo: FreqAcc = new Map()
   const steadyEmo: FreqAcc = new Map()
   const lowEmo: FreqAcc = new Map()
   const thoughts: FreqAcc = new Map()
   const body: FreqAcc = new Map()
+  let avoidanceCount = 0
 
   for (const p of points) {
     const row = rows.find((r) => r.id === p.id)
+    if (row && isAvoidanceEntry(row)) {
+      avoidanceCount += 1
+    }
     if (row) {
       const ids = JSON.parse(row.emotion_ids || '[]') as string[]
       for (const id of ids) {
         const label = emotionLabels.get(id) ?? id
-        const polarity = getEmotionPolarity(id)
+        const polarity = getEmotionPolarity(id, tagLists)
         if (polarity === 'positive') {
           bumpFreq(pleasantEmo, label, p.id)
         } else if (polarity === 'neutral') {
@@ -189,11 +232,14 @@ export function computeFrequencies(
 
   const lowEmotions = topCounts(lowEmo, 3)
   return {
+    painTriggers: computeZoneFactFrequencies(points, 'negative'),
+    rechargeHavens: computeZoneFactFrequencies(points, 'positive'),
     pleasantEmotions: topCounts(pleasantEmo, 3),
     steadyEmotions: topCounts(steadyEmo, 3),
     lowEmotions,
     negativeEmotions: lowEmotions,
     thoughts: topCounts(thoughts, 3),
-    bodyReactions: topCounts(body, 3)
+    bodyReactions: topCounts(body, 3),
+    avoidanceCount
   }
 }

@@ -1,6 +1,11 @@
 import { Notification, BrowserWindow, screen } from 'electron'
 import { join } from 'path'
-import { getSetting, setSetting } from './database'
+import {
+  AVOIDANCE_EMOTION_ID,
+  AVOIDANCE_FACT,
+  AVOIDANCE_THOUGHT
+} from '../shared/checkin'
+import { createEntry, getSetting, setSetting } from './database'
 import {
   isQuietHours,
   loadSettings,
@@ -16,7 +21,7 @@ let testReminderFireAt = 0
 let testReminderDelaySeconds = 0
 
 const SNOOZE_INTERVAL_MS = 20 * 60 * 1000
-const MAX_SNOOZE_PER_DAY = 3
+
 function clampReminderHours(hours: number): number {
   if (!Number.isFinite(hours) || hours < MIN_REMINDER_INTERVAL_HOURS) {
     return MIN_REMINDER_INTERVAL_HOURS
@@ -36,9 +41,9 @@ function getSnoozeCount(date: string): number {
   return Number(getSetting(`checkinSnoozeCount_${date}`, '0')) || 0
 }
 
+/** 最近一次 Esc 稍后后缩短间隔；不再因次数过多而静默 */
 function getEffectiveIntervalMs(settings: AppSettings): number {
-  const snoozes = getSnoozeCount(todayKey())
-  if (snoozes > 0 && snoozes < MAX_SNOOZE_PER_DAY) {
+  if (getSnoozeCount(todayKey()) > 0) {
     return SNOOZE_INTERVAL_MS
   }
   return reminderIntervalMs(settings)
@@ -56,9 +61,7 @@ export function setMainWindowGetter(fn: () => BrowserWindow | null): void {
 
 /** 非静默时段 + 距上次提醒已满间隔（保存记录后仍会继续提醒） */
 export function shouldPromptDailyCheckIn(now: Date, settings: AppSettings): boolean {
-  const date = now.toISOString().slice(0, 10)
   if (isQuietHours(now, settings.quietStart, settings.quietEnd)) return false
-  if (getSnoozeCount(date) >= MAX_SNOOZE_PER_DAY) return false
 
   const intervalMs = getEffectiveIntervalMs(settings)
   if (lastShownAt > 0 && Date.now() - lastShownAt < intervalMs) return false
@@ -82,8 +85,8 @@ export function onDailyRecordSaved(): void {
 }
 
 function deliverDailyCheckIn(settings: AppSettings): void {
-  const title = '\u8bb0\u5f55\u4eca\u5929\u7684\u5fc3\u60c5'
-  const body = '\u82b1\u4e00\u5206\u949f\u70b9\u9009\u60c5\u7eea\u4e0e\u72b6\u6001\uff0c\u7136\u540e\u4fdd\u5b58\u3002'
+  const title = '\u8bb0\u5f55\u6b64\u523b\u7684\u72b6\u6001'
+  const body = '\u82b1\u5341\u79d2\u70b9\u9009\u7cfb\u7edf\u72b6\u6001\uff0c\u987a\u7740\u672c\u6027\u5c31\u597d\u3002'
 
   if (settings.notificationsEnabled && Notification.isSupported()) {
     const notification = new Notification({ title, body })
@@ -96,8 +99,8 @@ function deliverDailyCheckIn(settings: AppSettings): void {
   }
 }
 
-const CHECKIN_WIDTH = 720
-const CHECKIN_HEIGHT = 500
+const CHECKIN_WIDTH = 760
+const CHECKIN_HEIGHT = 620
 
 function positionCheckInWindow(win: BrowserWindow): void {
   const { width: sw, height: sh } = screen.getPrimaryDisplay().workAreaSize
@@ -131,7 +134,7 @@ export function openCheckInWindow(): void {
     show: false,
     backgroundColor: '#f7f2eb',
     autoHideMenuBar: true,
-    title: '\u8bb0\u5f55\u5fc3\u60c5',
+    title: '\u8bb0\u5f55\u72b6\u6001',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -173,11 +176,21 @@ export function openCheckInWindow(): void {
   })
 }
 
-/** 用户 Esc / 关闭：稍后提醒（20 分钟内可再弹，当日满 3 次后静默） */
+/** 用户 Esc / 关闭：静默写入逃避记录，按间隔继续提醒（不再当日静默） */
 export function recordCheckInSnooze(): void {
+  createEntry({
+    fact: AVOIDANCE_FACT,
+    thought: AVOIDANCE_THOUGHT,
+    bodyTags: [],
+    behaviorTags: [],
+    reactionNote: '',
+    emotionIds: [AVOIDANCE_EMOTION_ID],
+    intensity: 7,
+    occurredAt: new Date().toISOString()
+  })
+
   const date = todayKey()
-  const count = getSnoozeCount(date) + 1
-  setSetting(`checkinSnoozeCount_${date}`, String(count))
+  setSetting(`checkinSnoozeCount_${date}`, String(getSnoozeCount(date) + 1))
   lastShownAt = Date.now()
   closeCheckInWindow()
 }

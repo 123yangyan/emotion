@@ -9,7 +9,7 @@ interface Props {
   summary: DayQuadrantSummary
 }
 
-/** 2×2 矩阵：上行高唤醒，下行低唤醒；左列消极、右列积极 */
+/** 2×2 能量流动矩阵：上行专注充电，下行内耗掉电；左列迎合外界，右列顺应真我 */
 const ORDER: QuadrantId[] = ['hn', 'hp', 'ln', 'lp']
 
 export default function EmotionQuadrantGrid({ summary }: Props): JSX.Element {
@@ -67,14 +67,6 @@ export default function EmotionQuadrantGrid({ summary }: Props): JSX.Element {
           <ul className="quadrant-advice-list">
             {ORDER.filter((id) => summary.counts[id] > 0).map((id) => {
               const def = QUADRANT_DEFINITIONS.find((q) => q.id === id)!
-              const dominantBodies = [
-                ...new Set(
-                  summary.placements
-                    .filter((p) => p.quadrantId === id)
-                    .map((p) => p.bodySummary)
-                    .filter((b) => b !== '\u2014')
-                )
-              ].slice(0, 2)
 
               return (
                 <li key={id} className="quadrant-advice-card">
@@ -82,12 +74,6 @@ export default function EmotionQuadrantGrid({ summary }: Props): JSX.Element {
                   <p className="quadrant-advice-card__emotions">
                     <strong>{ZH.quadrantEmotionExamples}</strong>
                     {def.exampleEmotions}
-                  </p>
-                  <p className="quadrant-advice-card__body">
-                    <strong>{ZH.quadrantBodyTraits}</strong>
-                    {dominantBodies.length > 0
-                      ? dominantBodies.join(ZH.emotionJoin)
-                      : def.bodyTraits}
                   </p>
                   <p className="quadrant-advice-card__advice">
                     <strong>{ZH.quadrantAdvice}</strong>

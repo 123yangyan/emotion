@@ -35,7 +35,6 @@ interface ChartPoint {
   label: string
   fact: string
   thought: string
-  body: string
   valence: number
   valenceColor: string
   quadrantLabel: string
@@ -85,8 +84,8 @@ export default function DayChart() {
   )
 
   const quadrantSummary = useMemo(
-    () => analyzeDayQuadrants(parsed, emotionLabels, behaviorLabels),
-    [parsed, emotionLabels, behaviorLabels]
+    () => analyzeDayQuadrants(parsed, emotionLabels, behaviorLabels, tagLists),
+    [parsed, emotionLabels, behaviorLabels, tagLists]
   )
 
   const chartData = useMemo((): ChartPoint[] => {
@@ -96,15 +95,7 @@ export default function DayChart() {
       const label = e.emotionIds.map((id) => emotionLabels.get(id) ?? id).join(ZH.emotionJoin)
       const fact =
         e.factTags.join(ZH.emotionJoin) || (e.factSupplement ? e.factSupplement : '\u2014')
-      const bodyParts = [
-        ...e.bodyTags,
-        ...e.behaviorIds.map((id) => {
-          const full = behaviorLabels.get(id) ?? id
-          return full.split('\uFF1A')[0]
-        })
-      ]
-      const body = bodyParts.join(ZH.emotionJoin) || '\u2014'
-      const valence = computeValence(e.emotionIds[0])
+      const valence = computeValence(e.emotionIds[0], tagLists)
       const qId = assignQuadrant(valence, computeArousal(e))
       const quadrantLabel = QUADRANT_DEFINITIONS.find((q) => q.id === qId)?.title ?? ''
       const row = entries.find((r) => r.id === e.id)
@@ -115,13 +106,12 @@ export default function DayChart() {
         label,
         fact,
         thought,
-        body,
         valence,
         valenceColor: valenceDotColor(valence),
         quadrantLabel
       }
     })
-  }, [parsed, emotionLabels, behaviorLabels])
+  }, [parsed, emotionLabels, behaviorLabels, entries, tagLists])
 
   const saveTitle = async (): Promise<void> => {
     await window.api.setDailyTitle(date, title)
@@ -191,9 +181,6 @@ export default function DayChart() {
                         </p>
                         <p>
                           {ZH.chartTooltipThought}：{p.thought}
-                        </p>
-                        <p>
-                          {ZH.chartTooltipBody}：{p.body}
                         </p>
                         <p className="chart-tooltip__quadrant">
                           {ZH.chartTooltipQuadrant}：{p.quadrantLabel}

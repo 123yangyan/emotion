@@ -15,6 +15,13 @@ import type {
 
 export type { RecordTagBehavior, RecordTagEmotion, TagListsConfig }
 
+/** 已下架的外部触发器标签（加载用户配置时自动剔除） */
+const REMOVED_FACT_SCENES = new Set(['没什么特别'])
+
+function sanitizeFactScenes(scenes: string[]): string[] {
+  return scenes.filter((tag) => !REMOVED_FACT_SCENES.has(tag))
+}
+
 function toRecordTags(items: { id: string; label: string }[]): RecordTagEmotion[] {
   return items.map((e) => ({ id: e.id, label: e.label }))
 }
@@ -79,7 +86,7 @@ export function defaultTagLists(): TagListsConfig {
     emotionsPositive,
     emotionsNeutral,
     emotionsNegative,
-    factScenes: [...FACT_SCENES],
+    factScenes: sanitizeFactScenes([...FACT_SCENES]),
     thoughtTags: [...THOUGHT_TAGS],
     bodyTags: [...BODY_TAGS],
     behaviorTags: BEHAVIOR_TAGS.map((b) => ({ id: b.id, label: b.label }))
@@ -93,7 +100,9 @@ export function resolveTagLists(raw?: TagListsConfig | null): TagListsConfig {
     emotionsPositive: raw.emotionsPositive?.length ? raw.emotionsPositive : base.emotionsPositive,
     emotionsNeutral: raw.emotionsNeutral?.length ? raw.emotionsNeutral : base.emotionsNeutral,
     emotionsNegative: raw.emotionsNegative?.length ? raw.emotionsNegative : base.emotionsNegative,
-    factScenes: raw.factScenes?.length ? raw.factScenes : base.factScenes,
+    factScenes: sanitizeFactScenes(
+      raw.factScenes?.length ? raw.factScenes : base.factScenes
+    ),
     thoughtTags: raw.thoughtTags?.length ? raw.thoughtTags : base.thoughtTags,
     bodyTags: raw.bodyTags?.length ? raw.bodyTags : base.bodyTags,
     behaviorTags: raw.behaviorTags?.length ? raw.behaviorTags : base.behaviorTags

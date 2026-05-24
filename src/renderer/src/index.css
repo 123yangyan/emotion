@@ -93,10 +93,11 @@ body {
 .app {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
   max-width: 920px;
   margin: 0 auto;
-  padding: 8px 16px 32px;
+  padding: 8px 16px 12px;
+  overflow: hidden;
 }
 
 /* 顶栏：单行弱展示，主内容区占满视口 */
@@ -221,6 +222,23 @@ body {
   margin-top: 10px;
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 记录页独占：main 不滚动，由内部 record-viewport 撑满剩余高度 */
+.main--record {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.main-record {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .section {
@@ -804,6 +822,469 @@ hr {
   }
 }
 
+/* ---------- 100vh 无缝网格：记录页 / 弹窗共用 ---------- */
+.record-viewport {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.record-viewport--page {
+  flex: 1;
+  min-height: 0;
+}
+
+.record-viewport--popup {
+  height: 100%;
+  padding: 10px 14px 12px;
+  background: var(--bg);
+  gap: 10px;
+}
+
+.record-viewport__meta--drag {
+  -webkit-app-region: drag;
+  cursor: default;
+}
+
+.record-viewport__meta-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+}
+
+.record-viewport__shortcut {
+  font-size: 0.68rem;
+  color: #a8a29e;
+}
+
+.record-viewport--popup .energy-grid {
+  -webkit-app-region: drag;
+  cursor: default;
+}
+
+.record-viewport--popup .energy-block {
+  padding: 10px 6px;
+  font-size: 0.78rem;
+}
+
+.record-viewport--popup .record-viewport__card {
+  padding: 12px 14px;
+}
+
+.record-viewport--popup .record-viewport__card h3 {
+  font-size: 0.88rem;
+  margin-bottom: 6px;
+}
+
+.record-viewport--popup .record-viewport__card h3 span {
+  font-size: 0.72rem;
+}
+
+.record-viewport--popup .single-line-input {
+  font-size: 0.78rem;
+  --input-lines: 1;
+  height: calc(0.78rem * 1.4 * var(--input-lines) + 16px);
+}
+
+/* 弹窗：缩小保存区，把垂直空间让给系统状态 + 底部双栏 */
+.record-viewport--popup .record-viewport__dock {
+  min-height: 32px;
+  padding-top: 0;
+}
+
+.record-viewport--popup .record-viewport__save {
+  width: min(34%, 220px);
+  padding: 8px 18px;
+  font-size: 0.8rem;
+  border-radius: 20px;
+  box-shadow: 0 3px 9px rgba(92, 131, 138, 0.26);
+}
+
+.record-viewport--popup .record-viewport__save:hover:not(:disabled) {
+  transform: translateY(-0.5px);
+}
+
+.record-viewport--popup .record-viewport__last,
+.record-viewport--popup .record-viewport__shortcut-corner {
+  bottom: 0;
+  font-size: 0.64rem;
+}
+
+.record-viewport--popup .record-viewport__spectrum {
+  flex: 1.06;
+}
+
+.record-viewport--popup .record-viewport__split {
+  flex: 1.22;
+}
+
+.record-viewport--popup .record-viewport__save,
+.record-viewport--popup button,
+.record-viewport--popup textarea,
+.record-viewport--popup input,
+.record-viewport--popup .chip,
+.record-viewport--popup .energy-block {
+  -webkit-app-region: no-drag;
+}
+
+.record-viewport--modal {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 18px 8px;
+  gap: 10px;
+}
+
+.record-viewport__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  padding: 0 4px;
+}
+
+/* 5 档负荷方块 */
+.energy-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.energy-block {
+  padding: 12px 8px;
+  text-align: center;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.82rem;
+  border: 2px solid transparent;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  line-height: 1.3;
+}
+
+.energy-block--1 {
+  background-color: #e6f7ff;
+  color: #1890ff;
+}
+
+.energy-block--2 {
+  background-color: #f0f5ff;
+  color: #2f54eb;
+}
+
+.energy-block--3 {
+  background-color: #f5f5f5;
+  color: #595959;
+}
+
+.energy-block--4 {
+  background-color: #fff7e6;
+  color: #fa8c16;
+}
+
+.energy-block--5 {
+  background-color: #fff0f6;
+  color: #eb2f96;
+}
+
+.energy-block.is-active {
+  border-color: #4a4a4a;
+  transform: scale(1.02);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.1),
+    0 10px 20px rgba(0, 0, 0, 0.06);
+}
+
+.energy-block:hover:not(.is-active) {
+  filter: brightness(0.98);
+}
+
+.record-viewport__card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-card);
+  min-height: 0;
+}
+
+.record-viewport__card h3 {
+  margin: 0 0 8px;
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--text) 88%, var(--muted));
+}
+
+.record-viewport__card h3 span {
+  font-size: 0.75rem;
+  font-weight: normal;
+  color: var(--muted);
+  margin-left: 6px;
+}
+
+.record-viewport__spectrum {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 10px 14px;
+}
+
+.record-viewport__spectrum h3 {
+  margin-bottom: 6px;
+}
+
+.record-viewport__spectrum .emotion-spectrum--panorama {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.record-viewport__spectrum .spectrum-panorama {
+  flex: 1;
+  min-height: 0;
+  margin-top: 0;
+  align-items: stretch;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.record-viewport__spectrum .spectrum-zone {
+  height: auto;
+  min-height: 0;
+  justify-content: flex-start;
+  padding: 8px 8px;
+  overflow: hidden;
+}
+
+.record-viewport__spectrum .spectrum-zone__label {
+  flex-shrink: 0;
+  margin-bottom: 4px;
+}
+
+.record-viewport__spectrum .spectrum-zone__chips {
+  flex: 1;
+  min-height: 0;
+  align-content: flex-start;
+  overflow: hidden;
+}
+
+.record-viewport__spectrum .emotion-zone-chip {
+  padding: 3px 8px;
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.record-viewport__split {
+  flex: 1.15;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.record-viewport__split > .record-viewport__input-col {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.record-viewport__input-col {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.record-viewport__input-col h3 {
+  flex-shrink: 0;
+}
+
+.record-input-stack {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.record-input-stack .tag-flow,
+.record-input-stack .chip-wrap {
+  flex-shrink: 0;
+  justify-content: flex-start;
+  margin-bottom: 0;
+}
+
+/* 底部双栏：标签区占满剩余空间，单行输入锚底，不出现滚动条 */
+.record-input-stack--elastic .chip-wrap,
+.record-input-stack--elastic .tag-flow {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  align-content: flex-start;
+  flex-shrink: 1;
+}
+
+.record-input-stack--elastic .single-line-input {
+  flex-shrink: 0;
+  margin-top: auto;
+}
+
+.single-line-input {
+  width: 100%;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  --input-lines: 1;
+  height: calc(0.82rem * 1.4 * var(--input-lines) + 16px);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  font-family: inherit;
+  line-height: 1.4;
+  resize: none;
+  outline: none;
+  background: #fff;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.record-viewport__input-col .tag-flow {
+  justify-content: flex-start;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.tag-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.single-line-input:focus {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.record-viewport__error {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0 4px;
+  font-size: 0.82rem;
+}
+
+.record-viewport__dock {
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  padding-top: 2px;
+  min-height: 44px;
+}
+
+.record-viewport__dock--popup {
+  -webkit-app-region: no-drag;
+}
+
+.record-viewport__action {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding-top: 0;
+}
+
+.record-viewport__last {
+  position: absolute;
+  right: 4px;
+  bottom: 2px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.record-viewport__shortcut-corner {
+  position: absolute;
+  left: 4px;
+  bottom: 2px;
+  font-size: 0.68rem;
+  color: #a8a29e;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.record-viewport__action--split {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.record-viewport__save {
+  width: min(40%, 280px);
+  padding: 12px 24px;
+  background-color: #5c838a;
+  color: #fff;
+  border: none;
+  border-radius: 25px;
+  font-size: 0.94rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(92, 131, 138, 0.3);
+  transition: background-color 0.2s ease, transform 0.12s ease;
+}
+
+.record-viewport__save:hover:not(:disabled) {
+  background-color: #4a6b71;
+  transform: translateY(-1px);
+}
+
+.record-viewport__save:disabled {
+  opacity: 0.72;
+  cursor: default;
+}
+
+.record-viewport__save.is-success {
+  background: linear-gradient(135deg, #5a9f6a 0%, #4a8f5a 100%);
+  box-shadow: 0 4px 16px rgba(74, 143, 90, 0.35);
+}
+
+.emotion-spectrum--no-axis .spectrum-panorama {
+  margin-top: 0;
+}
+
+@media (max-width: 640px) {
+  .energy-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .energy-block {
+    padding: 10px 4px;
+    font-size: 0.68rem;
+  }
+
+  .record-viewport__split {
+    grid-template-columns: 1fr;
+  }
+
+  .record-viewport__save {
+    width: 100%;
+  }
+}
+
 /* ---------- 紧凑记录页：分区一屏、快速点选 ---------- */
 .record-compact {
   display: flex;
@@ -868,6 +1349,52 @@ hr {
   gap: 12px;
   flex: 1;
   min-height: 0;
+}
+
+/* 方案 A：全景光谱横向布局 */
+.record-compact__grid--panorama {
+  grid-template-areas:
+    'intensity intensity'
+    'spectrum spectrum'
+    'fact thought';
+  grid-template-rows: auto auto auto;
+  align-items: start;
+  min-height: auto;
+  overflow: visible;
+}
+
+.record-compact__grid--panorama .zone-intensity {
+  grid-area: intensity;
+  grid-column: 1 / -1;
+  grid-row: auto;
+}
+
+.record-compact__grid--panorama .zone-emotion-panorama {
+  grid-area: spectrum;
+  grid-column: 1 / -1;
+  grid-row: auto;
+  height: auto;
+  min-height: fit-content;
+  padding-bottom: 32px;
+  overflow: visible;
+}
+
+.record-compact__grid--panorama .zone-fact {
+  grid-area: fact;
+  grid-column: 1 / 2;
+  grid-row: auto;
+  height: auto;
+  min-height: fit-content;
+  overflow: visible;
+}
+
+.record-compact__grid--panorama .zone-thought {
+  grid-area: thought;
+  grid-column: 2 / 3;
+  grid-row: auto;
+  height: auto;
+  min-height: fit-content;
+  overflow: visible;
 }
 
 .zone {
@@ -1020,6 +1547,22 @@ hr {
   grid-row: 2 / 3;
 }
 
+/* 全景布局：必须在旧版 zone-* 定位之后，否则 fact/thought 会与系统状态抢同一行 */
+.record-compact__grid--panorama .zone-emotion {
+  grid-column: 1 / -1;
+  grid-row: auto;
+}
+
+.record-compact__grid--panorama .zone-fact {
+  grid-column: 1 / 2;
+  grid-row: auto;
+}
+
+.record-compact__grid--panorama .zone-thought {
+  grid-column: 2 / 3;
+  grid-row: auto;
+}
+
 .fact-inline-input {
   width: 100%;
   margin-top: 8px;
@@ -1142,6 +1685,125 @@ hr {
   padding: 4px 8px;
   font-size: 0.68rem;
   line-height: 1.4;
+}
+
+/* 全景三列：真实充电 | 无感运行 | 角色扮演 */
+.emotion-spectrum--panorama {
+  gap: 12px;
+  overflow: visible;
+}
+
+.spectrum-panorama {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
+  margin-top: 24px;
+  min-width: 0;
+}
+
+.spectrum-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 100%;
+  padding: 20px 12px;
+  border-radius: 12px;
+  border: none;
+  box-sizing: border-box;
+}
+
+.spectrum-zone--positive {
+  background: color-mix(in srgb, var(--positive) 8%, #f7faf7);
+}
+
+.spectrum-zone--neutral {
+  background: color-mix(in srgb, var(--muted) 6%, #fafafa);
+}
+
+.spectrum-zone--negative {
+  background: color-mix(in srgb, var(--negative) 7%, #faf8f8);
+}
+
+.spectrum-zone__label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-align: center;
+}
+
+.spectrum-zone__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  min-width: 0;
+}
+
+.emotion-zone-chip {
+  border: 1px solid transparent;
+  transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+}
+
+.emotion-zone-chip:hover {
+  transform: translateY(-1px);
+}
+
+.emotion-zone-chip--positive {
+  background: color-mix(in srgb, var(--positive) 12%, #fff);
+  color: color-mix(in srgb, var(--positive) 70%, #3d4549);
+  border-color: color-mix(in srgb, var(--positive) 25%, transparent);
+}
+
+.emotion-zone-chip--positive.active {
+  background: var(--positive);
+  color: #fff;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--positive) 35%, transparent);
+}
+
+.emotion-zone-chip--neutral {
+  background: color-mix(in srgb, var(--muted) 10%, #fff);
+  color: color-mix(in srgb, var(--muted) 80%, #3d4549);
+  border-color: color-mix(in srgb, var(--muted) 22%, transparent);
+}
+
+.emotion-zone-chip--neutral.active {
+  background: color-mix(in srgb, var(--muted) 55%, #6b7280);
+  color: #fff;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--muted) 30%, transparent);
+}
+
+.emotion-zone-chip--negative {
+  background: color-mix(in srgb, var(--negative) 10%, #fff);
+  color: color-mix(in srgb, var(--negative) 65%, #3d4549);
+  border-color: color-mix(in srgb, var(--negative) 22%, transparent);
+}
+
+.emotion-zone-chip--negative.active {
+  background: var(--negative);
+  color: #fff;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--negative) 35%, transparent);
+}
+
+.emotion-spectrum--compact .spectrum-panorama {
+  gap: 5px;
+}
+
+.emotion-spectrum--compact .spectrum-zone {
+  padding: 6px 6px 8px;
+  gap: 5px;
+}
+
+.emotion-spectrum--compact .spectrum-zone__label {
+  font-size: 0.58rem;
+}
+
+.emotion-spectrum--compact .emotion-zone-chip {
+  padding: 3px 6px;
+  font-size: 0.64rem;
 }
 
 .checkin-zone--fact .chip-wrap--fact-popup {
@@ -1594,24 +2256,20 @@ html.checkin-mode #root {
   background: var(--bg);
 }
 
-.checkin-panel .record-compact--popup {
+.record-viewport--popup.is-closing {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease;
+}
+
+.checkin-panel .record-viewport--popup {
   flex: 1;
   width: 100%;
   min-height: 0;
   max-height: none;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-  overflow: hidden;
   opacity: 1;
   transition: opacity 0.28s ease;
-  background: var(--bg);
-}
-
-.record-compact--popup.is-closing {
-  opacity: 0;
-  pointer-events: none;
 }
 
 .checkin-titlebar {
@@ -2193,8 +2851,23 @@ html.checkin-mode #root {
 }
 
 @media (max-width: 640px) {
-  .record-compact__grid {
+  .record-compact__grid,
+  .record-compact__grid--panorama {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      'intensity'
+      'spectrum'
+      'fact'
+      'thought';
+  }
+
+  .spectrum-panorama {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .spectrum-zone {
+    height: auto;
   }
 
   .zone-emotion,
@@ -2345,6 +3018,17 @@ html.checkin-mode #root {
   margin-bottom: 12px;
 }
 
+.panorama-freq__avoidance {
+  margin: 0 0 14px;
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+}
+
 .freq-block {
   margin-bottom: 14px;
 }
@@ -2353,6 +3037,20 @@ html.checkin-mode #root {
   margin: 0 0 6px;
   font-size: 0.78rem;
   color: var(--muted);
+}
+
+.freq-block--featured {
+  padding: 10px 10px 8px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 88%, #f5ebe0);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, #d4c4b0);
+}
+
+.freq-block--featured h4 {
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
 .freq-list {
@@ -2550,6 +3248,18 @@ html.checkin-mode #root {
   font-size: 1.1rem;
   font-weight: 700;
   color: color-mix(in srgb, var(--snapshot-hero-color) 85%, var(--text));
+}
+
+.panorama-snapshot__divergence-badge {
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #b45309;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 4px;
+  white-space: nowrap;
 }
 
 /* Content Grid：三栏平铺，无内部滚动 */
@@ -2825,6 +3535,20 @@ html.checkin-mode #root {
   --row-emotion: #7a7585;
 }
 
+.history-row--avoidance {
+  border-style: dashed;
+  opacity: 0.92;
+}
+
+.history-row__avoidance-badge {
+  padding: 1px 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #92400e;
+  background: #fef3c7;
+  border-radius: 4px;
+}
+
 .history-row__body {
   flex: 1;
   min-width: 0;
@@ -3061,7 +3785,7 @@ html.checkin-mode #root {
 }
 
 /* 弹窗表单：中间滚动 + 底栏固定 */
-.history-modal .record-compact--modal {
+.history-modal .record-viewport--modal {
   flex: 1;
   min-height: 0;
   max-height: none;
@@ -3071,52 +3795,19 @@ html.checkin-mode #root {
   padding: 0;
 }
 
-.history-modal .record-compact__grid {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-  padding: 12px 18px 8px;
+.history-modal .record-viewport__spectrum,
+.history-modal .record-viewport__split {
+  flex: 0 0 auto;
 }
 
-.history-modal .zone-intensity,
-.history-modal .zone-emotion,
-.history-modal .zone-thought,
-.history-modal .zone-fact,
-.history-modal .zone-body {
-  grid-column: 1;
-  grid-row: auto;
-}
-
-.history-modal .zone {
-  box-shadow: none;
-  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
-  background: var(--bg-soft);
-  padding: 10px 12px;
-  border-radius: 12px;
-}
-
-.history-modal .zone h2 {
-  margin-bottom: 6px;
-  font-size: 0.86rem;
-}
-
-.history-modal .zone-subhint {
-  margin: -2px 0 6px;
-}
-
-.history-modal .record-compact__error {
+.history-modal .record-viewport__error {
   flex-shrink: 0;
   margin: 0;
   padding: 0 18px 4px;
   background: var(--card);
 }
 
-.history-modal .record-compact__footer {
+.history-modal .record-viewport__action {
   position: static;
   flex-shrink: 0;
   display: flex;
@@ -3131,11 +3822,12 @@ html.checkin-mode #root {
   z-index: 2;
 }
 
-.history-modal .record-compact__footer--split {
+.history-modal .record-viewport__action--split {
   justify-content: flex-end;
 }
 
-.history-modal .record-save-btn {
+.history-modal .record-viewport__save {
+  width: auto;
   min-width: 112px;
 }
 

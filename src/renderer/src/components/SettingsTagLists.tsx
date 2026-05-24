@@ -85,31 +85,6 @@ export default function SettingsTagLists({ value, onChange }: Props): JSX.Elemen
           onRestore={() => patch({ thoughtTags: defaults.thoughtTags })}
         />
       </section>
-
-      <section className="tag-edit-section">
-        <h3>{ZH.bodyMind}</h3>
-        <p className="hint">{ZH.tagBodyHint}</p>
-        <div className="tag-edit-polarity tag-edit-polarity--neutral">
-          <h4>{ZH.body}</h4>
-          <TagChipFlow
-            items={value.bodyTags}
-            tone="neutral"
-            onChange={(bodyTags) => patch({ bodyTags })}
-            onRestore={() => patch({ bodyTags: defaults.bodyTags })}
-          />
-        </div>
-        <div className="tag-edit-polarity tag-edit-polarity--behavior">
-          <h4>{ZH.behavior}</h4>
-          <IdChipFlow
-            items={value.behaviorTags}
-            tone="behavior"
-            placeholder={ZH.tagBehaviorPlaceholder}
-            makeId={(label) => makeTagId('behavior', label)}
-            onChange={(behaviorTags) => patch({ behaviorTags })}
-            onRestore={() => patch({ behaviorTags: defaults.behaviorTags })}
-          />
-        </div>
-      </section>
     </div>
   )
 }

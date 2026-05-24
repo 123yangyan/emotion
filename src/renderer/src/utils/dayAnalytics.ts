@@ -1,5 +1,7 @@
-import { EMOTIONS, type EmotionPolarity } from '../data/emotions'
+import { type EmotionPolarity } from '../data/emotions'
+import type { TagListsConfig } from '../../../shared/types'
 import type { ParsedEntry } from './entryParse'
+import { resolveEmotionPolarity } from './emotionSpectrum'
 
 export type QuadrantId = 'hn' | 'ln' | 'hp' | 'lp'
 
@@ -58,46 +60,44 @@ const LOW_AROUSAL_BODY = new Set([
 export const QUADRANT_DEFINITIONS: QuadrantDefinition[] = [
   {
     id: 'hn',
-    title: '\u9ad8\u5524\u9192 \u00b7 \u6d88\u6781',
-    axisLabel: '\u654c\u610f\u3001\u7126\u8e81\u3001\u7126\u8651',
-    exampleEmotions: '\u6124\u6012\u3001\u7126\u8e81\u3001\u7126\u8651',
-    bodyTraits: '\u5fc3\u8df3\u52a0\u5feb\u3001\u51fa\u6c57\u3001\u808c\u8089\u7d27\u7ef7',
+    title: '\u865a\u5047\u7e41\u8363\u533a',
+    axisLabel: '\u9022\u5408\u5916\u754c\u6807\u51c6 \u00b7 \u6253\u9e21\u8840',
+    exampleEmotions: '\u5f3a\u6491\u4eba\u8bbe\u3001\u8fc7\u9ad8\u671f\u8bb8\u3001\u6025\u8e81\u50ac\u4fc3',
+    bodyTraits: '\u8868\u9762\u5174\u594b\u3001\u5185\u91cc\u7d27\u7ef7\u3001\u547c\u5438\u6025\u4fc3',
     advice:
-      '\u9700\u8981\u5ba3\u6cc4\uff1a\u5efa\u8bae\u79bb\u5f00\u5f53\u524d\u5c01\u95ed\u7a7a\u95f4\uff0c\u8fdb\u884c\u5feb\u901f\u547c\u5438\u6216\u8eaf\u4f53\u62c9\u4f38\u3002'
+      '\u8b66\u60d5\u300c\u4e3a\u4e86\u4ed6\u4eba\u800c\u620f\u594b\u300d\u2014\u2014\u8fd9\u662f\u6d88\u8017\uff0c\u4e0d\u662f\u5145\u7535\u3002'
   },
   {
     id: 'ln',
-    title: '\u4f4e\u5524\u9192 \u00b7 \u6d88\u6781',
-    axisLabel: '\u632b\u8d25\u3001\u59d4\u5c48\u3001\u5b64\u72ec',
-    exampleEmotions: '\u632b\u8d25\u3001\u59d4\u5c48\u3001\u5b64\u72ec',
-    bodyTraits: '\u53d1\u5446\u3001\u758f\u4f4f\u3001\u53d1\u51b7',
+    title: '\u4e25\u91cd\u78e8\u635f\u533a',
+    axisLabel: '\u9022\u5408\u5916\u754c \u00b7 \u6781\u5ea6\u5185\u8017\u6389\u7535',
+    exampleEmotions: '\u88ab\u903c\u8feb\u611f\u3001\u65e0\u610f\u4e49\u6d88\u8017\u3001\u5954\u5408\u5916\u754c',
+    bodyTraits: '\u80f8\u95f7\u3001\u7126\u8e81\u3001\u60f3\u9003\u79bb\u3001\u808c\u8089\u7d27\u7ef7',
     advice:
-      '\u9700\u8981\u5145\u80fd\uff1a\u6b64\u65f6\u4e0d\u5b9c\u5f3a\u884c\u601d\u8003\uff0c\u5efa\u8bae\u5bfb\u6c42\u8212\u9002\u73af\u5883\u6216\u6df1\u5ea6\u4f11\u606f\u3002'
+      '\u4f18\u5148\u4f18\u5316\uff1a\u8bc6\u522b\u89e6\u53d1\u5668\uff0c\u5efa\u7acb\u8fb9\u754c\uff0c\u505a\u6700\u5c0f\u53ef\u884c\u7684\u5207\u6362\u3002'
   },
   {
     id: 'hp',
-    title: '\u9ad8\u5524\u9192 \u00b7 \u79ef\u6781',
-    axisLabel: '\u5174\u594b\u3001\u5f00\u5fc3\u3001\u6ee1\u8db3',
-    exampleEmotions: '\u5174\u594b\u3001\u5f00\u5fc3\u3001\u6ee1\u8db3',
-    bodyTraits: '\u7cbe\u529b\u5145\u6c9b\u3001\u8eab\u4f53\u8f7b\u76c8',
+    title: '\u7edd\u5bf9\u8212\u9002\u533a',
+    axisLabel: '\u987a\u5e94\u5185\u5728\u771f\u6211 \u00b7 \u6781\u5ea6\u4e13\u6ce8\u5145\u7535',
+    exampleEmotions: '\u7eaf\u7cb9\u5fc3\u6d41\u3001\u638c\u63a7\u611f\u3001\u597d\u5947\u9a71\u52a8',
+    bodyTraits: '\u7cbe\u529b\u5145\u6c9b\u3001\u8eab\u4f53\u8f7b\u76c8\u3001\u547c\u5438\u7a33\u5b9a',
     advice:
-      '\u53ef\u4ee5\u63a8\u8fdb\uff1a\u9002\u5408\u6253\u653b\u575a\u6218\uff0c\u5904\u7406\u9ad8\u96be\u5ea6\u3001\u9ad8\u521b\u9020\u6027\u7684\u5de5\u4f5c\u3002'
+      '\u4fdd\u62a4\u8fd9\u6bb5\u9ec4\u91d1\u65f6\u95f4\uff0c\u505a\u9ad8\u521b\u9020\u529b\u3001\u987a\u7740\u672c\u6027\u7684\u4e8b\u3002'
   },
   {
     id: 'lp',
-    title: '\u4f4e\u5524\u9192 \u00b7 \u79ef\u6781',
-    axisLabel: '\u653e\u677e\u3001\u5b89\u5b81\u3001\u611f\u6069',
-    exampleEmotions: '\u653e\u677e\u3001\u5b89\u5b81\u3001\u611f\u6069',
-    bodyTraits: '\u547c\u5438\u5e73\u7f13\u3001\u808c\u8089\u677e\u5f1b',
+    title: '\u4f4e\u80fd\u91cf\u771f\u6211\u533a',
+    axisLabel: '\u987a\u5e94\u771f\u6211 \u00b7 \u4f4e\u5524\u9192\u6062\u590d',
+    exampleEmotions: '\u5fc3\u5982\u6b62\u6c34\u3001\u65c1\u89c2\u8005\u6a21\u5f0f\u3001\u6309\u90e8\u5c31\u73ed',
+    bodyTraits: '\u547c\u5438\u5e73\u7f13\u3001\u808c\u8089\u677e\u5f1b\u3001\u6e05\u6670\u4f46\u4e0d\u7528\u529b',
     advice:
-      '\u9002\u5408\u590d\u76d8\uff1a\u6700\u597d\u7684\u6b63\u5ff5\u4e0e\u6df1\u5ea6\u601d\u8003\u3001\u77e5\u8bc6\u5185\u7701\u7684\u9ec4\u91d1\u65f6\u95f4\u3002'
+      '\u9002\u5408\u590d\u76d8\u4e0e\u5185\u7701\uff0c\u4e0d\u5b9c\u5f3a\u884c\u63a8\u8fdb\u6216\u8865\u507f\u6027\u52b3\u52a8\u3002'
   }
 ]
 
-const emotionPolarity = new Map(EMOTIONS.map((e) => [e.id, e.polarity]))
-
-export function getEmotionPolarity(emotionId: string): EmotionPolarity {
-  return emotionPolarity.get(emotionId) ?? 'neutral'
+export function getEmotionPolarity(emotionId: string, tagLists?: TagListsConfig): EmotionPolarity {
+  return resolveEmotionPolarity(emotionId, tagLists)
 }
 
 function factGroupKey(tags: string[]): string {
@@ -208,9 +208,9 @@ export function computeArousal(entry: ParsedEntry): number {
   return Math.max(0, Math.min(1, score))
 }
 
-export function computeValence(emotionId: string | undefined): number {
+export function computeValence(emotionId: string | undefined, tagLists?: TagListsConfig): number {
   if (!emotionId) return 0
-  const p = getEmotionPolarity(emotionId)
+  const p = getEmotionPolarity(emotionId, tagLists)
   if (p === 'positive') return 1
   if (p === 'negative') return -1
   return 0
@@ -226,14 +226,15 @@ export function assignQuadrant(valence: number, arousal: number): QuadrantId {
 export function analyzeDayQuadrants(
   entries: ParsedEntry[],
   emotionLabels: Map<string, string>,
-  behaviorLabels: Map<string, string>
+  behaviorLabels: Map<string, string>,
+  tagLists?: TagListsConfig
 ): DayQuadrantSummary {
   const counts: Record<QuadrantId, number> = { hn: 0, ln: 0, hp: 0, lp: 0 }
   const placements: QuadrantPlacement[] = []
 
   for (const e of entries) {
     const arousal = computeArousal(e)
-    const valence = computeValence(e.emotionIds[0])
+    const valence = computeValence(e.emotionIds[0], tagLists)
     const quadrantId = assignQuadrant(valence, arousal)
     counts[quadrantId]++
 
