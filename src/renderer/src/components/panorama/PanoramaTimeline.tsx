@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import {
   CartesianGrid,
   Line,
@@ -9,23 +9,51 @@ import {
   XAxis,
   YAxis
 } from 'recharts'
+import type { CategoricalChartState } from 'recharts/types/chart/types'
 import type { PanoramaPoint } from '../../utils/panoramaAnalytics'
 import { ZH } from '../../i18n/zh'
 
 interface Props {
   points: PanoramaPoint[]
   selectedId: number | null
-  onSelect: (id: number) => void
+  /** 非 null 时仅高亮这些 id，其余点降透明度 */
+  highlightIds: number[] | null
+  onToggleSelect: (id: number) => void
 }
 
-/** \u53cc\u5411\u60c5\u7eea\u6f6e\u6c50\u56fe */
-export default function PanoramaTimeline({ points, selectedId, onSelect }: Props): JSX.Element {
+/** 从 Recharts 点击事件中取出最近的数据点（利用内置 Voronoi 热区，避免手写 SVG 抢焦点） */
+function pickPointFromChartEvent(
+  state: CategoricalChartState | undefined,
+  chartData: PanoramaPoint[]
+): PanoramaPoint | null {
+  if (!state) return null
+  const idx = state.activeTooltipIndex
+  if (typeof idx === 'number' && chartData[idx]) return chartData[idx]
+  const payload = state.activePayload?.[0]?.payload as PanoramaPoint | undefined
+  return payload ?? null
+}
+
+/** 双向情绪潮汐图 */
+export default function PanoramaTimeline({
+  points,
+  selectedId,
+  highlightIds,
+  onToggleSelect
+}: Props): JSX.Element {
   const chartData = useMemo(() => points.map((p) => ({ ...p, displayTs: p.ts })), [points])
 
   const tickFormatter = (ts: number): string => {
     const p = points.find((pt) => pt.ts === ts)
     return p?.timeLabel ?? ''
   }
+
+  const handleChartClick = useCallback(
+    (state: CategoricalChartState) => {
+      const p = pickPointFromChartEvent(state, chartData)
+      if (p) onToggleSelect(p.id)
+    },
+    [chartData, onToggleSelect]
+  )
 
   return (
     <div className="panorama-timeline">
@@ -39,11 +67,14 @@ export default function PanoramaTimeline({ points, selectedId, onSelect }: Props
             <i className="panorama-legend__bar panorama-legend__bar--neg" />
             {ZH.panoramaLegendNeg}
           </span>
-          <span className="hint">{ZH.panoramaBaseline}</span>
         </div>
         <div className="panorama-tide__chart">
           <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={chartData} margin={{ top: 12, right: 16, left: 8, bottom: 8 }}>
+            <LineChart
+              data={chartData}
+              margin={{ top: 12, right: 16, left: 8, bottom: 8 }}
+              onClick={handleChartClick}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#e8e4df" vertical={false} />
               <XAxis
                 dataKey="displayTs"
@@ -71,17 +102,17 @@ export default function PanoramaTimeline({ points, selectedId, onSelect }: Props
                       <p>{p.emotionLabels}</p>
                       {p.factTags.length > 0 ? (
                         <p>
-                          {ZH.chartTooltipFact}\uff1a{p.factTags.join(ZH.emotionJoin)}
+                          {ZH.chartTooltipFact}：{p.factTags.join(ZH.emotionJoin)}
                         </p>
                       ) : null}
                       {p.thoughtRaw ? (
                         <p>
-                          {ZH.chartTooltipThought}\uff1a{p.thoughtRaw}
+                          {ZH.chartTooltipThought}：{p.thoughtRaw}
                         </p>
                       ) : null}
                       {p.bodyParts.length > 0 ? (
                         <p>
-                          {ZH.chartTooltipBody}\uff1a{p.bodyParts.join(ZH.emotionJoin)}
+                          {ZH.chartTooltipBody}：{p.bodyParts.join(ZH.emotionJoin)}
                         </p>
                       ) : null}
                       <p className="hint">{ZH.panoramaClickHint}</p>
@@ -99,23 +130,30 @@ export default function PanoramaTimeline({ points, selectedId, onSelect }: Props
                   const p = payload as PanoramaPoint
                   if (cx == null || cy == null) return null
                   const selected = p.id === selectedId
+                  const filtered = highlightIds != null
+                  const dimmed = filtered && !highlightIds.includes(p.id)
+                  const r = selected ? 9 : 6
                   return (
                     <circle
                       cx={cx}
                       cy={cy}
-                      r={selected ? 9 : 6}
+                      r={r}
                       fill={p.valenceColor}
                       stroke={selected ? '#3d4549' : '#fffcfa'}
                       strokeWidth={selected ? 2.5 : 2}
-                      style={{ cursor: 'pointer' }}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onSelect(p.id)
-                      }}
+                      opacity={dimmed ? 0.22 : 1}
+                      style={{ cursor: 'pointer', pointerEvents: 'none' }}
+                      aria-hidden
                     />
                   )
                 }}
-                activeDot={{ r: 8 }}
+                activeDot={{
+                  r: 9,
+                  stroke: '#3d4549',
+                  strokeWidth: 2,
+                  fill: '#fffcfa',
+                  style: { cursor: 'pointer' }
+                }}
               />
             </LineChart>
           </ResponsiveContainer>

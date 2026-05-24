@@ -9,6 +9,14 @@ export function formatNowLocal(date = new Date()): string {
   return `${y}\u5e74${mo}\u6708${d}\u65e5 ${h}:${mi}:${s}`
 }
 
+/** 记录页顶栏：仅时分秒 */
+export function formatClockLocal(date = new Date()): string {
+  const h = String(date.getHours()).padStart(2, '0')
+  const mi = String(date.getMinutes()).padStart(2, '0')
+  const s = String(date.getSeconds()).padStart(2, '0')
+  return `${h}:${mi}:${s}`
+}
+
 /** 弹窗标题区日期：2026/05/17 */
 export function formatDateShort(date = new Date()): string {
   const y = date.getFullYear()

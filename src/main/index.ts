@@ -45,6 +45,14 @@ let tray: Tray | null = null
 let checkInTimer: ReturnType<typeof setInterval> | null = null
 let isQuitting = false
 
+// Windows：Fluent 原生滚动条会忽略 ::-webkit-scrollbar，需关闭后才走 CSS 自定义
+if (process.platform === 'win32') {
+  app.commandLine.appendSwitch(
+    'disable-features',
+    'FluentScrollbar,FluentOverlayScrollbar'
+  )
+}
+
 function createMainWindow(): void {
   mainWindow = new BrowserWindow({
     width: 960,

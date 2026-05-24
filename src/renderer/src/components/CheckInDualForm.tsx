@@ -1,7 +1,8 @@
 import { useRef } from 'react'
-import { POLARITY_LABEL } from '../data/emotions'
-import type { TagListsConfig } from '../data/tagLists'
+import type { RecordTagEmotion, TagListsConfig } from '../data/tagLists'
 import IntensityEnergyBar from './IntensityEnergyBar'
+import EmotionSpectrumPicker from './EmotionSpectrumPicker'
+import FactSceneSection from './FactSceneSection'
 import { ZH } from '../i18n/zh'
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
   onPickIntensity: (n: number) => void
   emotionIds: string[]
   onPickEmotion: (id: string) => void
+  emotionSpectrum: RecordTagEmotion[]
   tagLists: TagListsConfig
   focusZone: 'emotion' | 'fact' | 'thought' | 'body' | null
   setFocusZone: (z: 'emotion' | 'fact' | 'thought' | 'body' | null) => void
@@ -20,9 +22,7 @@ interface Props {
   onPickFact: (tag: string) => void
   factSupplement: string
   setFactSupplement: (v: string) => void
-  factNoteEditing: boolean
-  setFactNoteEditing: (v: boolean) => void
-  onConfirmFactNote: () => void
+  factPlaceholder: string
   thoughtTags: string[]
   onPickThought: (tag: string) => void
   thoughtNote: string
@@ -47,6 +47,7 @@ export default function CheckInDualForm({
   onPickIntensity,
   emotionIds,
   onPickEmotion,
+  emotionSpectrum,
   tagLists,
   focusZone,
   setFocusZone,
@@ -54,9 +55,7 @@ export default function CheckInDualForm({
   onPickFact,
   factSupplement,
   setFactSupplement,
-  factNoteEditing,
-  setFactNoteEditing,
-  onConfirmFactNote,
+  factPlaceholder,
   thoughtTags,
   onPickThought,
   thoughtNote,
@@ -74,12 +73,6 @@ export default function CheckInDualForm({
   const factRef = useRef<HTMLElement>(null)
   const thoughtRef = useRef<HTMLElement>(null)
   const bodyRef = useRef<HTMLElement>(null)
-  const factNoteInputRef = useRef<HTMLInputElement>(null)
-
-  const openFactNoteInput = (): void => {
-    setFactNoteEditing(true)
-    requestAnimationFrame(() => factNoteInputRef.current?.focus())
-  }
 
   return (
     <form
@@ -120,38 +113,12 @@ export default function CheckInDualForm({
               onBlur={() => setFocusZone((z) => (z === 'emotion' ? null : z))}
             >
               <h2>{ZH.emotionCore}</h2>
-              <div className="emotion-stack">
-                <div className="emotion-stack__block emotion-stack__block--negative">
-                  <span className="emotion-col-label">{POLARITY_LABEL.negative}</span>
-                  <div className="emotion-col-chips">
-                    {tagLists.emotionsNegative.map((em) => (
-                      <button
-                        key={em.id}
-                        type="button"
-                        className={`chip sm negative ${emotionIds[0] === em.id ? 'active' : ''}`}
-                        onClick={() => onPickEmotion(em.id)}
-                      >
-                        {em.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="emotion-stack__block emotion-stack__block--positive">
-                  <span className="emotion-col-label">{POLARITY_LABEL.positive}</span>
-                  <div className="emotion-col-chips">
-                    {tagLists.emotionsPositive.map((em) => (
-                      <button
-                        key={em.id}
-                        type="button"
-                        className={`chip sm positive ${emotionIds[0] === em.id ? 'active' : ''}`}
-                        onClick={() => onPickEmotion(em.id)}
-                      >
-                        {em.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <EmotionSpectrumPicker
+                emotions={emotionSpectrum}
+                selectedId={emotionIds[0]}
+                onPick={onPickEmotion}
+                compact
+              />
             </section>
 
             <section
@@ -192,50 +159,17 @@ export default function CheckInDualForm({
               onFocus={() => setFocusZone('fact')}
               onBlur={() => setFocusZone((z) => (z === 'fact' ? null : z))}
             >
-              <h2>{ZH.factHappened}</h2>
-              <div className="chip-wrap chip-wrap--fact-popup">
-                {tagLists.factScenes.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    className={`chip sm scene scene--ghost ${factTags[0] === tag ? 'active' : ''}`}
-                    onClick={() => onPickFact(tag)}
-                  >
-                    {tag}
-                  </button>
-                ))}
-                {factNoteEditing ? (
-                  <input
-                    ref={factNoteInputRef}
-                    type="text"
-                    className="chip-inline-input chip-inline-input--fact"
-                    value={factSupplement}
-                    onChange={(e) => setFactSupplement(e.target.value)}
-                    placeholder={ZH.factSupplementPh}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        onConfirmFactNote()
-                      }
-                      if (e.key === 'Escape') {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        setFactNoteEditing(false)
-                      }
-                    }}
-                    onBlur={() => onConfirmFactNote()}
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    className={`chip sm chip-add-bubble ${factSupplement.trim() ? 'active' : ''}`}
-                    onClick={openFactNoteInput}
-                    title={ZH.factAddNote}
-                  >
-                    {factSupplement.trim() || '+'}
-                  </button>
-                )}
-              </div>
+              <h2>{ZH.factSceneTitle}</h2>
+              <FactSceneSection
+                factScenes={tagLists.factScenes}
+                factTags={factTags}
+                onPickFact={onPickFact}
+                factSupplement={factSupplement}
+                setFactSupplement={setFactSupplement}
+                factPlaceholder={factPlaceholder}
+                ghostChips
+                compact
+              />
             </section>
 
             <section

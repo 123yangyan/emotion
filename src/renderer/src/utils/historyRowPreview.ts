@@ -1,8 +1,8 @@
 import type { EntryRow } from '../../../main/database'
 import type { EmotionPolarity } from '../data/emotions'
+import { ZH } from '../i18n/zh'
 import { getEmotionPolarity } from './dayAnalytics'
-import { parseEntryRow } from './entryParse'
-
+import { parseEntryRow, type ParsedEntry } from './entryParse'
 const JOIN = '\u3001'
 const TAG_SEP = '\uff0c'
 
@@ -13,15 +13,25 @@ export interface HistoryRowView {
   intensity: number
   emotionLabel: string
   polarity: EmotionPolarity
-  /** 事实等离散标签，逗号连接 */
-  tagText: string
-  /** 自定义想法（非预设胶囊） */
+  /** 核心情绪与能量，如「5分 · 压力大」 */
+  coreStatus: string
+  /** 客观情境摘要，如「在 工作/学习」 */
+  contextSummary: string
+  /** 场景标签原文（供 UI 芯片展示） */
+  sceneText: string
+  /** 事实补充说明 */
+  factNoteText: string
+  /** 预设想法摘要，如「[我不该有这种感受]」 */
+  thoughtSummary: string
+  /** 自由想法文本 */
   quoteText: string
+  /** 身心反应标签，逗号连接 */
+  bodySummary: string
   /** 悬停显示完整内容 */
   fullTitle: string
 }
 
-function splitThought(raw: string, knownTags: string[]): { tags: string[]; quote: string } {
+export function splitThought(raw: string, knownTags: string[]): { tags: string[]; quote: string } {
   if (!raw.trim()) return { tags: [], quote: '' }
   const parts = raw.split(JOIN).map((p) => p.trim()).filter(Boolean)
   const known = new Set(knownTags)
@@ -34,11 +44,30 @@ function splitThought(raw: string, knownTags: string[]): { tags: string[]; quote
   return { tags, quote: extras.join(JOIN) }
 }
 
+function joinPreview(parts: string[]): string {
+  return parts.filter(Boolean).join(' · ')
+}
+
+/** 合并身体标签与行为标签为展示用列表 */
+export function buildBodyParts(
+  parsed: ParsedEntry,
+  behaviorLabels: Map<string, string>
+): string[] {
+  return [
+    ...parsed.bodyTags,
+    ...parsed.behaviorIds.map((id) => {
+      const full = behaviorLabels.get(id) ?? id
+      return full.split('\uFF1A')[0]
+    })
+  ]
+}
+
 /** 生成历史列表单行展示数据 */
 export function buildHistoryRowView(
   row: EntryRow,
   emotionLabels: Map<string, string>,
-  thoughtTagOptions: string[]
+  thoughtTagOptions: string[],
+  behaviorLabels: Map<string, string>
 ): HistoryRowView {
   const parsed = parseEntryRow(row)
   const d = new Date(row.occurred_at)
@@ -51,19 +80,31 @@ export function buildHistoryRowView(
     : '\u672a\u6807\u6ce8'
   const polarity = emotionId ? getEmotionPolarity(emotionId) : 'neutral'
 
-  const tagParts = [...parsed.factTags]
-  if (parsed.factSupplement.trim()) tagParts.push(parsed.factSupplement.trim())
-  const tagText = tagParts.join(TAG_SEP)
+  const sceneText = parsed.factTags.join(TAG_SEP)
+  const factNoteText = parsed.factSupplement.trim()
+  const contextSummary = sceneText ? ZH.historyContextAt(sceneText) : ''
 
-  const { quote } = splitThought(row.thought, thoughtTagOptions)
+  const { tags: thoughtTags, quote } = splitThought(row.thought, thoughtTagOptions)
+  const thoughtTagText = thoughtTags.join(TAG_SEP)
+  const quoteText = quote.trim()
+  const thoughtSummary = thoughtTagText ? `[${thoughtTagText}]` : ''
+
+  const bodyParts = buildBodyParts(parsed, behaviorLabels)
+  const bodySummary = bodyParts.join(TAG_SEP)
+
+  const coreStatus = ZH.historyCoreStatus(parsed.intensity, emotionLabel)
+
+  const thoughtText = joinPreview([thoughtSummary, quoteText ? `"${quoteText}"` : ''])
+  const bodyText = bodySummary ? ZH.historyBodySummary(bodySummary) : ''
 
   const previewParts: string[] = [
     time,
-    `${parsed.intensity}\u5206`,
-    emotionLabel
+    coreStatus,
+    contextSummary,
+    factNoteText,
+    thoughtText,
+    bodyText
   ]
-  if (tagText) previewParts.push(tagText)
-  if (quote) previewParts.push(quote)
 
   return {
     id: row.id,
@@ -72,9 +113,14 @@ export function buildHistoryRowView(
     intensity: parsed.intensity,
     emotionLabel,
     polarity,
-    tagText,
-    quoteText: quote,
-    fullTitle: previewParts.join(' \u00b7 ')
+    coreStatus,
+    contextSummary,
+    sceneText,
+    factNoteText,
+    thoughtSummary,
+    quoteText,
+    bodySummary,
+    fullTitle: joinPreview(previewParts)
   }
 }
 

@@ -22,7 +22,38 @@ export interface EntryRowLike {
 }
 
 const FACT_JOIN = '\u3001'
-const SUPPLEMENT_PREFIX = '\u8865\u5145\u8bf4\u660e:'
+/** 写入 fact 字段的补充说明前缀（与 UI 标签文案分离，便于稳定解析） */
+export const FACT_SUPPLEMENT_PREFIX = '\u8865\u5145\u8bf4\u660e:'
+const SUPPLEMENT_PREFIX_LEGACY = '\u8865\u5145\u8bf4\u660e\uff08\u53ef\u9009\uff09:'
+const SUPPLEMENT_PREFIX_RE = /^补充说明(?:（可选）)?:(.*)$/
+
+function parseSupplementPart(part: string): string | null {
+  if (part.startsWith(FACT_SUPPLEMENT_PREFIX)) {
+    return part.slice(FACT_SUPPLEMENT_PREFIX.length).trim()
+  }
+  if (part.startsWith(SUPPLEMENT_PREFIX_LEGACY)) {
+    return part.slice(SUPPLEMENT_PREFIX_LEGACY.length).trim()
+  }
+  const match = part.match(SUPPLEMENT_PREFIX_RE)
+  return match ? match[1].trim() : null
+}
+
+/** 将 fact 字段拆成场景标签与补充说明 */
+export function parseFactField(fact: string): { tags: string[]; supplement: string } {
+  if (!fact.trim()) return { tags: [], supplement: '' }
+  const parts = fact.split(FACT_JOIN).map((p) => p.trim()).filter(Boolean)
+  const tags: string[] = []
+  let supplement = ''
+  for (const p of parts) {
+    const parsed = parseSupplementPart(p)
+    if (parsed != null) {
+      supplement = parsed
+    } else {
+      tags.push(p)
+    }
+  }
+  return { tags, supplement }
+}
 
 function parseJsonArray(raw: string): string[] {
   try {
@@ -33,29 +64,15 @@ function parseJsonArray(raw: string): string[] {
   }
 }
 
-/** 将 fact 字段拆成场景标签与补充说明 */
-export function parseFactField(fact: string): { tags: string[]; supplement: string } {
-  if (!fact.trim()) return { tags: [], supplement: '' }
-  const parts = fact.split(FACT_JOIN).map((p) => p.trim()).filter(Boolean)
-  const tags: string[] = []
-  let supplement = ''
-  for (const p of parts) {
-    if (p.startsWith(SUPPLEMENT_PREFIX)) {
-      supplement = p.slice(SUPPLEMENT_PREFIX.length).trim()
-    } else {
-      tags.push(p)
-    }
-  }
-  return { tags, supplement }
-}
-
 export function parseEntryRow(row: EntryRowLike): ParsedEntry {
   const { tags, supplement } = parseFactField(row.fact)
+  const reactionNote = row.reaction_note?.trim() ?? ''
   return {
     id: row.id,
     occurredAt: new Date(row.occurred_at),
     factTags: tags,
-    factSupplement: supplement || (row.reaction_note?.trim() ?? ''),
+    // 优先用 fact 内解析出的补充；reaction_note 仅作旧数据兜底，且避免与已解析内容重复
+    factSupplement: supplement || (reactionNote && !tags.some((t) => t.includes(reactionNote)) ? reactionNote : ''),
     bodyTags: parseJsonArray(row.body_tags),
     behaviorIds: parseJsonArray(row.behavior_tags),
     emotionIds: parseJsonArray(row.emotion_ids),

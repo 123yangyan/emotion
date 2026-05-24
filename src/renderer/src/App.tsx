@@ -30,6 +30,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('record')
   const [toast, setToast] = useState('')
   const [tagListsVersion, setTagListsVersion] = useState(0)
+  const [historyEditId, setHistoryEditId] = useState<number | null>(null)
 
   useEffect(() => {
     if (!window.api?.hasEntryToday) return
@@ -82,10 +83,20 @@ export default function App() {
             key={tagListsVersion}
             tagListsVersion={tagListsVersion}
             onToast={showToast}
+            initialEditId={historyEditId}
+            onInitialEditConsumed={() => setHistoryEditId(null)}
           />
         )}
         {tab === 'chart' && <DayChart key={tagListsVersion} />}
-        {tab === 'analysis' && <AnalysisPage key={tagListsVersion} />}
+        {tab === 'analysis' && (
+          <AnalysisPage
+            key={tagListsVersion}
+            onEditEntry={(id) => {
+              setHistoryEditId(id)
+              setTab('history')
+            }}
+          />
+        )}
         {tab === 'settings' && (
           <SettingsPage
             onToast={showToast}

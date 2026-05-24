@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { ZH } from '../i18n/zh'
 
 export type ChipTone = 'negative' | 'positive' | 'neutral' | 'scene' | 'thought' | 'behavior'
+
+type InsertPosition = 'before' | 'after'
 
 interface TagChipFlowProps {
   items: string[]
@@ -11,7 +13,140 @@ interface TagChipFlowProps {
   placeholder?: string
 }
 
-/** 流式胶囊：展示、× 删除、点击文字可改、末尾 + 添加 */
+/** 松手后按目标标签的 before/after 重排数组 */
+function reorderOnDrop<T>(
+  items: T[],
+  draggedIndex: number,
+  targetIndex: number,
+  insertPosition: InsertPosition
+): T[] {
+  let finalInsertIndex = insertPosition === 'before' ? targetIndex : targetIndex + 1
+  if (draggedIndex < finalInsertIndex) finalInsertIndex--
+  if (finalInsertIndex === draggedIndex) return items
+  const next = [...items]
+  const [removed] = next.splice(draggedIndex, 1)
+  next.splice(finalInsertIndex, 0, removed)
+  return next
+}
+
+/** 标签级拖拽：draggedIndex + targetIndex + insertPosition */
+function useChipDragReorder<T>(items: T[], onChange: (items: T[]) => void) {
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [targetIndex, setTargetIndex] = useState<number | null>(null)
+  const [insertPosition, setInsertPosition] = useState<InsertPosition | null>(null)
+  const targetIndexRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    targetIndexRef.current = targetIndex
+  }, [targetIndex])
+
+  const resetDrag = (): void => {
+    setDraggedIndex(null)
+    setTargetIndex(null)
+    setInsertPosition(null)
+  }
+
+  const handleDragStart = (index: number) => (e: DragEvent<HTMLElement>): void => {
+    setDraggedIndex(index)
+    setTargetIndex(null)
+    setInsertPosition(null)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', String(index))
+    const chip = e.currentTarget.closest('.tag-chip')
+    if (chip instanceof HTMLElement) {
+      e.dataTransfer.setDragImage(chip, chip.offsetWidth / 2, chip.offsetHeight / 2)
+    }
+  }
+
+  const handleTagDragOver = (index: number) => (e: DragEvent<HTMLElement>): void => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (draggedIndex === null || index === draggedIndex) return
+
+    const rect = e.currentTarget.getBoundingClientRect()
+    const mouseX = e.clientX - rect.left
+    const position: InsertPosition = mouseX < rect.width / 2 ? 'before' : 'after'
+
+    setTargetIndex(index)
+    setInsertPosition(position)
+  }
+
+  const handleTagDragLeave = (index: number) => (e: DragEvent<HTMLElement>): void => {
+    const related = e.relatedTarget
+    if (related instanceof Node && e.currentTarget.contains(related)) return
+    if (targetIndexRef.current === index) {
+      setTargetIndex(null)
+      setInsertPosition(null)
+    }
+  }
+
+  const handleTagDrop = (index: number) => (e: DragEvent<HTMLElement>): void => {
+    e.preventDefault()
+    if (draggedIndex === null || index === draggedIndex) {
+      resetDrag()
+      return
+    }
+
+    const rect = e.currentTarget.getBoundingClientRect()
+    const mouseX = e.clientX - rect.left
+    const position: InsertPosition = mouseX < rect.width / 2 ? 'before' : 'after'
+    onChange(reorderOnDrop(items, draggedIndex, index, position))
+    resetDrag()
+  }
+
+  const handleDragEnd = (): void => {
+    resetDrag()
+  }
+
+  return {
+    draggedIndex,
+    targetIndex,
+    insertPosition,
+    handleDragStart,
+    handleTagDragOver,
+    handleTagDragLeave,
+    handleTagDrop,
+    handleDragEnd
+  }
+}
+
+function ChipDragSlot({
+  index,
+  draggedIndex,
+  targetIndex,
+  insertPosition,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  children
+}: {
+  index: number
+  draggedIndex: number | null
+  targetIndex: number | null
+  insertPosition: InsertPosition | null
+  onDragOver: (e: DragEvent<HTMLElement>) => void
+  onDragLeave: (e: DragEvent<HTMLElement>) => void
+  onDrop: (e: DragEvent<HTMLElement>) => void
+  children: ReactNode
+}): JSX.Element {
+  const showBefore = draggedIndex !== null && targetIndex === index && insertPosition === 'before'
+  const showAfter = draggedIndex !== null && targetIndex === index && insertPosition === 'after'
+
+  return (
+    <span
+      className="tag-chip-slot"
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
+      {showBefore ? <span className="tag-chip-insert-line tag-chip-insert-line--before" aria-hidden /> : null}
+      {children}
+      {showAfter ? <span className="tag-chip-insert-line tag-chip-insert-line--after" aria-hidden /> : null}
+    </span>
+  )
+}
+
+/** 流式胶囊：展示、拖拽排序、× 删除、点击文字可改、末尾 + 添加 */
 export function TagChipFlow({
   items,
   onChange,
@@ -22,6 +157,7 @@ export function TagChipFlow({
   const [adding, setAdding] = useState(false)
   const [draft, setDraft] = useState('')
   const addInputRef = useRef<HTMLInputElement>(null)
+  const drag = useChipDragReorder(items, onChange)
 
   useEffect(() => {
     if (adding) addInputRef.current?.focus()
@@ -55,13 +191,26 @@ export function TagChipFlow({
     <div className="tag-chip-flow">
       <div className="tag-chip-wrap">
         {items.map((label, index) => (
-          <EditableChip
+          <ChipDragSlot
             key={`${label}-${index}`}
-            label={label}
-            tone={tone}
-            onRemove={() => removeAt(index)}
-            onRename={(next) => renameAt(index, next)}
-          />
+            index={index}
+            draggedIndex={drag.draggedIndex}
+            targetIndex={drag.targetIndex}
+            insertPosition={drag.insertPosition}
+            onDragOver={drag.handleTagDragOver(index)}
+            onDragLeave={drag.handleTagDragLeave(index)}
+            onDrop={drag.handleTagDrop(index)}
+          >
+            <EditableChip
+              label={label}
+              tone={tone}
+              isDragging={drag.draggedIndex === index}
+              onDragStart={drag.handleDragStart(index)}
+              onDragEnd={drag.handleDragEnd}
+              onRemove={() => removeAt(index)}
+              onRename={(next) => renameAt(index, next)}
+            />
+          </ChipDragSlot>
         ))}
         {adding ? (
           <input
@@ -104,11 +253,17 @@ export function TagChipFlow({
 function EditableChip({
   label,
   tone,
+  isDragging,
+  onDragStart,
+  onDragEnd,
   onRemove,
   onRename
 }: {
   label: string
   tone: ChipTone
+  isDragging: boolean
+  onDragStart: (e: DragEvent<HTMLElement>) => void
+  onDragEnd: () => void
   onRemove: () => void
   onRename: (label: string) => void
 }): JSX.Element {
@@ -154,7 +309,18 @@ function EditableChip({
   }
 
   return (
-    <span className={`tag-chip tag-chip--${tone}`}>
+    <span className={`tag-chip tag-chip--${tone} ${isDragging ? 'is-dragging' : ''}`}>
+      <button
+        type="button"
+        className="tag-chip-drag-handle"
+        draggable
+        aria-label={ZH.tagDragReorder}
+        title={ZH.tagDragReorder}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+      >
+        ⋮⋮
+      </button>
       <button type="button" className="tag-chip-label" onClick={() => setEditing(true)} title={ZH.tagClickEdit}>
         {label}
       </button>
@@ -189,6 +355,7 @@ export function IdChipFlow({
   const [adding, setAdding] = useState(false)
   const [draft, setDraft] = useState('')
   const addInputRef = useRef<HTMLInputElement>(null)
+  const drag = useChipDragReorder(items, onChange)
 
   useEffect(() => {
     if (adding) addInputRef.current?.focus()
@@ -228,13 +395,26 @@ export function IdChipFlow({
     <div className="tag-chip-flow">
       <div className="tag-chip-wrap">
         {items.map((item, index) => (
-          <EditableChip
+          <ChipDragSlot
             key={item.id}
-            label={item.label}
-            tone={tone}
-            onRemove={() => removeAt(index)}
-            onRename={(next) => renameAt(index, next)}
-          />
+            index={index}
+            draggedIndex={drag.draggedIndex}
+            targetIndex={drag.targetIndex}
+            insertPosition={drag.insertPosition}
+            onDragOver={drag.handleTagDragOver(index)}
+            onDragLeave={drag.handleTagDragLeave(index)}
+            onDrop={drag.handleTagDrop(index)}
+          >
+            <EditableChip
+              label={item.label}
+              tone={tone}
+              isDragging={drag.draggedIndex === index}
+              onDragStart={drag.handleDragStart(index)}
+              onDragEnd={drag.handleDragEnd}
+              onRemove={() => removeAt(index)}
+              onRename={(next) => renameAt(index, next)}
+            />
+          </ChipDragSlot>
         ))}
         {adding ? (
           <input

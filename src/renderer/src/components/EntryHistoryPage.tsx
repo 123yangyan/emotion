@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { EntryRow } from '../../../main/database'
-import { EMOTIONS } from '../data/emotions'
+import { BEHAVIOR_TAGS, EMOTIONS } from '../data/emotions'
 import { buildEmotionLabelMap, resolveTagLists } from '../data/tagLists'
 import { ZH } from '../i18n/zh'
 import {
@@ -13,12 +13,20 @@ import MoodRecordForm from './MoodRecordForm'
 interface Props {
   onToast: (msg: string) => void
   tagListsVersion: number
+  /** 从分析页跳转过来时，自动打开该条记录的编辑 */
+  initialEditId?: number | null
+  onInitialEditConsumed?: () => void
 }
 
 const MAX_PAGER_BUTTONS = 9
 
 /** 全部历史：单行流 + 每页 10 条 + 选择删除 + 快速翻页 */
-export default function EntryHistoryPage({ onToast, tagListsVersion }: Props): JSX.Element {
+export default function EntryHistoryPage({
+  onToast,
+  tagListsVersion,
+  initialEditId = null,
+  onInitialEditConsumed
+}: Props): JSX.Element {
   const [entries, setEntries] = useState<EntryRow[]>([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
@@ -29,6 +37,9 @@ export default function EntryHistoryPage({ onToast, tagListsVersion }: Props): J
     buildEmotionLabelMap(resolveTagLists(), EMOTIONS)
   )
   const [thoughtTags, setThoughtTags] = useState<string[]>(() => resolveTagLists().thoughtTags)
+  const [behaviorLabels, setBehaviorLabels] = useState(
+    () => new Map([...BEHAVIOR_TAGS, ...resolveTagLists().behaviorTags].map((b) => [b.id, b.label]))
+  )
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -38,6 +49,9 @@ export default function EntryHistoryPage({ onToast, tagListsVersion }: Props): J
     const lists = resolveTagLists(settings.tagLists)
     setEmotionLabels(buildEmotionLabelMap(lists, EMOTIONS))
     setThoughtTags(lists.thoughtTags)
+    setBehaviorLabels(
+      new Map([...BEHAVIOR_TAGS, ...lists.behaviorTags].map((b) => [b.id, b.label]))
+    )
     setLoading(false)
   }, [])
 
@@ -46,8 +60,8 @@ export default function EntryHistoryPage({ onToast, tagListsVersion }: Props): J
   }, [load, tagListsVersion])
 
   const rows: HistoryRowView[] = useMemo(
-    () => entries.map((e) => buildHistoryRowView(e, emotionLabels, thoughtTags)),
-    [entries, emotionLabels, thoughtTags]
+    () => entries.map((e) => buildHistoryRowView(e, emotionLabels, thoughtTags, behaviorLabels)),
+    [entries, emotionLabels, thoughtTags, behaviorLabels]
   )
 
   const totalPages = Math.max(1, Math.ceil(rows.length / HISTORY_PAGE_SIZE))
@@ -59,6 +73,20 @@ export default function EntryHistoryPage({ onToast, tagListsVersion }: Props): J
   useEffect(() => {
     setJumpInput(String(page))
   }, [page])
+
+  // 分析页「在历史中编辑」跳转：定位到对应页并打开编辑表单
+  useEffect(() => {
+    if (initialEditId == null || rows.length === 0) return
+    const idx = rows.findIndex((r) => r.id === initialEditId)
+    if (idx < 0) {
+      onToast(ZH.historyEntryMissing)
+      onInitialEditConsumed?.()
+      return
+    }
+    setPage(Math.floor(idx / HISTORY_PAGE_SIZE) + 1)
+    setEditingId(initialEditId)
+    onInitialEditConsumed?.()
+  }, [initialEditId, rows, onToast, onInitialEditConsumed])
 
   const pageRows = useMemo(() => {
     const start = (page - 1) * HISTORY_PAGE_SIZE
@@ -179,36 +207,50 @@ export default function EntryHistoryPage({ onToast, tagListsVersion }: Props): J
     return Array.from({ length: end - start + 1 }, (_, i) => start + i)
   }, [page, totalPages])
 
-  if (editingId != null) {
-    return (
-      <div className="history-page history-page--edit">
-        <div className="history-edit-bar">
-          <button type="button" className="btn ghost" onClick={() => setEditingId(null)}>
-            {ZH.historyBackToList}
-          </button>
-          <span className="hint">{ZH.historyEditing}</span>
-        </div>
-        <MoodRecordForm
-          key={editingId}
-          variant="page"
-          editEntryId={editingId}
-          onSaved={() => {
-            onToast(ZH.historyUpdated)
-            setEditingId(null)
-            void load()
-          }}
-          onCancel={() => setEditingId(null)}
-        />
-      </div>
-    )
-  }
+  const editingEntry = useMemo(
+    () => (editingId == null ? null : (entries.find((e) => e.id === editingId) ?? null)),
+    [entries, editingId]
+  )
+
+  const editingRowView = useMemo(
+    () => (editingId == null ? null : (rows.find((r) => r.id === editingId) ?? null)),
+    [rows, editingId]
+  )
+
+  const closeEditModal = useCallback((): void => {
+    setEditingId(null)
+  }, [])
+
+  useEffect(() => {
+    if (editingId == null) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') closeEditModal()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prev
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [closeEditModal, editingId])
+
+  const handleEditSaved = useCallback(
+    (updated?: EntryRow): void => {
+      onToast(ZH.historyUpdated)
+      setEditingId(null)
+      if (updated) {
+        setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
+      }
+    },
+    [onToast]
+  )
 
   return (
     <div className="history-page">
       <header className="history-header">
         <div>
           <h2>{ZH.historyTitle}</h2>
-          <p className="hint">{ZH.historyDesc}</p>
         </div>
         <button type="button" className="btn secondary" onClick={() => void load()}>
           {ZH.refresh}
@@ -263,33 +305,77 @@ export default function EntryHistoryPage({ onToast, tagListsVersion }: Props): J
                     <div className="history-rows__date">{formatDateLabel(row.dateKey)}</div>
                   ) : null}
                   <div
-                    className={`history-row history-row--${row.polarity} ${checked ? 'is-selected' : ''}`}
+                    className={`history-row-item history-row history-row--${row.polarity} ${checked ? 'is-selected' : ''}`}
                     title={row.fullTitle}
                   >
-                    <label className="history-row__check" aria-label={ZH.historySelectPage}>
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleSelect(row.id)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </label>
-                    <time className="history-row__time">{row.time}</time>
-                    <span className="history-row__score">
-                      {row.intensity}
-                      {'\u5206'}
-                    </span>
-                    <span className="history-row__emotion">{row.emotionLabel}</span>
-                    {row.tagText ? <span className="history-row__tags">{row.tagText}</span> : null}
-                    {row.quoteText ? (
-                      <span className="history-row__quote">
-                        <span className="history-row__quote-bar" aria-hidden>
-                          |
-                        </span>
-                        <q>{row.quoteText}</q>
-                      </span>
-                    ) : null}
-                    <span className="history-row__actions">
+                    {/* 左侧：复选框 + 核心内容，与操作按钮保持在同一视线范围内 */}
+                    <div className="history-row__content">
+                      <label className="history-row__check" aria-label={ZH.historySelectPage}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleSelect(row.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </label>
+                      <div className="history-row__body">
+                        <div className="history-row__main-content">
+                          {/* 一级主标题：时间锚点 → 情绪名 → 分数/场景等辅助信息 */}
+                          <div className="history-row__line history-row__line--primary">
+                            <time className="history-row__time">{row.time}</time>
+                            <span className="history-row__time-sep" aria-hidden>
+                              —
+                            </span>
+                            <span className="history-row__emotion">{row.emotionLabel}</span>
+                            <span className="history-row__intensity">
+                              {row.intensity}
+                              {'\u5206'}
+                            </span>
+                            {row.sceneText ? (
+                              <span className="history-row__context-tag">
+                                <span className="history-row__context-icon" aria-hidden>
+                                  📍
+                                </span>
+                                {row.sceneText}
+                              </span>
+                            ) : null}
+                            {row.factNoteText ? (
+                              <span className="history-row__fact-note">{row.factNoteText}</span>
+                            ) : null}
+                          </div>
+                          {row.thoughtSummary || row.quoteText ? (
+                            <div className="history-row__sub-thought">
+                              <span className="history-row__thought-label">
+                                <span aria-hidden>💭 </span>
+                                {ZH.historyThoughtFlash}
+                              </span>
+                              {row.thoughtSummary ? (
+                                <span className="history-row__thought-tag">{row.thoughtSummary}</span>
+                              ) : null}
+                              {row.thoughtSummary && row.quoteText ? (
+                                <span className="history-row__thought-sep" aria-hidden>
+                                  ·
+                                </span>
+                              ) : null}
+                              {row.quoteText ? (
+                                <q className="history-row__quote">{row.quoteText}</q>
+                              ) : null}
+                            </div>
+                          ) : null}
+                          {row.bodySummary ? (
+                            <div className="history-row__sub-body">
+                              <span className="history-row__body-label">
+                                <span aria-hidden>🫀 </span>
+                                {ZH.bodyMind}：
+                              </span>
+                              <span className="history-row__body-tags">{row.bodySummary}</span>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                    {/* 右侧：操作按钮紧跟内容尾部，不再贴死屏幕边缘 */}
+                    <div className="history-row__actions">
                       <button
                         type="button"
                         className="history-row__link"
@@ -304,7 +390,7 @@ export default function EntryHistoryPage({ onToast, tagListsVersion }: Props): J
                       >
                         {ZH.historyDelete}
                       </button>
-                    </span>
+                    </div>
                   </div>
                 </li>
               )
@@ -391,6 +477,45 @@ export default function EntryHistoryPage({ onToast, tagListsVersion }: Props): J
           </nav>
         </div>
       )}
+
+      {editingId != null ? (
+        <div
+          className="modal-overlay"
+          role="presentation"
+          onClick={closeEditModal}
+        >
+          <div
+            className="modal-content history-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label={ZH.historyEditing}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="history-modal-bar">
+              <div className="history-modal-bar__title">
+                <span className="history-modal-bar__label">{ZH.historyEditing}</span>
+                {editingRowView ? (
+                  <time className="history-modal-bar__time">{editingRowView.time}</time>
+                ) : null}
+                {editingRowView ? (
+                  <span className="history-modal-bar__emotion">{editingRowView.emotionLabel}</span>
+                ) : null}
+              </div>
+              <button type="button" className="btn ghost" onClick={closeEditModal}>
+                {ZH.historyModalClose}
+              </button>
+            </div>
+            <MoodRecordForm
+              key={editingId}
+              variant="modal"
+              editEntryId={editingId}
+              initialData={editingEntry ?? undefined}
+              onSaved={handleEditSaved}
+              onCancel={closeEditModal}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -27,9 +27,15 @@ export interface PanoramaPoint {
 export interface FrequencyItem {
   label: string
   count: number
+  /** 包含该标签的记录 id（供高频榜反查） */
+  entryIds: number[]
 }
 
 export interface PanoramaFrequencies {
+  pleasantEmotions: FrequencyItem[]
+  steadyEmotions: FrequencyItem[]
+  lowEmotions: FrequencyItem[]
+  /** @deprecated 保留兼容；等同 lowEmotions */
   negativeEmotions: FrequencyItem[]
   thoughts: FrequencyItem[]
   bodyReactions: FrequencyItem[]
@@ -78,11 +84,23 @@ function tideValueFromIntensity(intensity: number): number {
   return intensity - 5
 }
 
-function topCounts(map: Map<string, number>, limit: number): FrequencyItem[] {
+type FreqAcc = Map<string, { count: number; entryIds: number[] }>
+
+function bumpFreq(map: FreqAcc, label: string, entryId: number): void {
+  const cur = map.get(label)
+  if (cur) {
+    cur.count += 1
+    if (!cur.entryIds.includes(entryId)) cur.entryIds.push(entryId)
+  } else {
+    map.set(label, { count: 1, entryIds: [entryId] })
+  }
+}
+
+function topCounts(map: FreqAcc, limit: number): FrequencyItem[] {
   return [...map.entries()]
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => b[1].count - a[1].count)
     .slice(0, limit)
-    .map(([label, count]) => ({ label, count }))
+    .map(([label, { count, entryIds }]) => ({ label, count, entryIds }))
 }
 
 export function buildPanoramaPoints(
@@ -139,31 +157,42 @@ export function computeFrequencies(
   emotionLabels: Map<string, string>,
   rows: EntryRow[]
 ): PanoramaFrequencies {
-  const negEmo = new Map<string, number>()
-  const thoughts = new Map<string, number>()
-  const body = new Map<string, number>()
+  const pleasantEmo: FreqAcc = new Map()
+  const steadyEmo: FreqAcc = new Map()
+  const lowEmo: FreqAcc = new Map()
+  const thoughts: FreqAcc = new Map()
+  const body: FreqAcc = new Map()
 
   for (const p of points) {
     const row = rows.find((r) => r.id === p.id)
     if (row) {
       const ids = JSON.parse(row.emotion_ids || '[]') as string[]
       for (const id of ids) {
-        if (getEmotionPolarity(id) === 'negative') {
-          const label = emotionLabels.get(id) ?? id
-          negEmo.set(label, (negEmo.get(label) ?? 0) + 1)
+        const label = emotionLabels.get(id) ?? id
+        const polarity = getEmotionPolarity(id)
+        if (polarity === 'positive') {
+          bumpFreq(pleasantEmo, label, p.id)
+        } else if (polarity === 'neutral') {
+          bumpFreq(steadyEmo, label, p.id)
+        } else {
+          bumpFreq(lowEmo, label, p.id)
         }
       }
     }
     for (const t of p.thoughtParts) {
-      thoughts.set(t, (thoughts.get(t) ?? 0) + 1)
+      bumpFreq(thoughts, t, p.id)
     }
     for (const b of p.bodyParts) {
-      body.set(b, (body.get(b) ?? 0) + 1)
+      bumpFreq(body, b, p.id)
     }
   }
 
+  const lowEmotions = topCounts(lowEmo, 3)
   return {
-    negativeEmotions: topCounts(negEmo, 3),
+    pleasantEmotions: topCounts(pleasantEmo, 3),
+    steadyEmotions: topCounts(steadyEmo, 3),
+    lowEmotions,
+    negativeEmotions: lowEmotions,
     thoughts: topCounts(thoughts, 3),
     bodyReactions: topCounts(body, 3)
   }

@@ -31,7 +31,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
-    "electron": "^34.0.0",
+    "electron": "^34.5.8",
     "electron-builder": "^25.1.8",
     "electron-vite": "^3.0.0",
     "typescript": "^5.7.2",
@@ -44,13 +44,18 @@
       "output": "release"
     },
     "win": {
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     },
-    "files": ["out/**/*", "package.json"],
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
     "extraResources": [
       {
         "from": "resources/tray-icon.png",

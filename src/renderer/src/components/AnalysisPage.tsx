@@ -7,6 +7,7 @@ import {
   buildPanoramaPoints,
   computeFrequencies,
   getRangeBounds,
+  type FrequencyItem,
   type PanoramaPoint,
   type PanoramaRange
 } from '../utils/panoramaAnalytics'
@@ -20,15 +21,22 @@ const RANGES: { id: PanoramaRange; label: string }[] = [
   { id: 'month', label: ZH.panoramaRangeMonth }
 ]
 
-/** \u5168\u666f\u8231\u00b7\u5206\u6790\u9875 */
-export default function AnalysisPage(): JSX.Element {
+interface Props {
+  onEditEntry?: (id: number) => void
+}
+
+/** 全景舱·分析页 */
+export default function AnalysisPage({ onEditEntry }: Props): JSX.Element {
   const [range, setRange] = useState<PanoramaRange>('week')
   const [entries, setEntries] = useState<EntryRow[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [highlightIds, setHighlightIds] = useState<number[] | null>(null)
+  const [filterLabel, setFilterLabel] = useState<string | null>(null)
   const [emotionLabels, setEmotionLabels] = useState(() =>
     buildEmotionLabelMap(resolveTagLists(), EMOTIONS)
   )
+  const [thoughtTags, setThoughtTags] = useState<string[]>(() => resolveTagLists().thoughtTags)
 
   const behaviorLabels = useMemo(() => {
     const lists = resolveTagLists()
@@ -41,13 +49,22 @@ export default function AnalysisPage(): JSX.Element {
     const rows = await window.api.listEntriesBetween(startIso, endIso)
     setEntries(rows)
     const settings = await window.api.getSettings()
-    setEmotionLabels(buildEmotionLabelMap(resolveTagLists(settings.tagLists), EMOTIONS))
+    const lists = resolveTagLists(settings.tagLists)
+    setEmotionLabels(buildEmotionLabelMap(lists, EMOTIONS))
+    setThoughtTags(lists.thoughtTags)
     setLoading(false)
   }, [range])
 
   useEffect(() => {
     void load()
   }, [load])
+
+  // 切换时间范围时重置选中与筛选，避免「幽灵选中」
+  useEffect(() => {
+    setSelectedId(null)
+    setHighlightIds(null)
+    setFilterLabel(null)
+  }, [range])
 
   const points: PanoramaPoint[] = useMemo(
     () => buildPanoramaPoints(entries, emotionLabels, behaviorLabels, range),
@@ -59,10 +76,87 @@ export default function AnalysisPage(): JSX.Element {
     [points, emotionLabels, entries]
   )
 
+  // 可导航的记录 id 列表（有筛选时仅在筛选集合内切换）
+  const navigableIds = useMemo(() => {
+    const pool =
+      highlightIds != null
+        ? points.filter((p) => highlightIds.includes(p.id))
+        : points
+    return pool.map((p) => p.id)
+  }, [points, highlightIds])
+
   const selectedPoint = useMemo(
     () => points.find((p) => p.id === selectedId) ?? null,
     [points, selectedId]
   )
+
+  const navIndex = selectedId != null ? navigableIds.indexOf(selectedId) : -1
+
+  const handleToggleSelect = useCallback((id: number) => {
+    setSelectedId((prev) => (prev === id ? null : id))
+  }, [])
+
+  const selectByOffset = useCallback(
+    (delta: number) => {
+      if (selectedId == null || navigableIds.length === 0) return
+      const idx = navigableIds.indexOf(selectedId)
+      const base = idx >= 0 ? idx : 0
+      const next = Math.min(navigableIds.length - 1, Math.max(0, base + delta))
+      setSelectedId(navigableIds[next] ?? null)
+    },
+    [selectedId, navigableIds]
+  )
+
+  const clearSelection = useCallback(() => {
+    setSelectedId(null)
+    setHighlightIds(null)
+    setFilterLabel(null)
+  }, [])
+
+  const handleFreqItemClick = useCallback(
+    (item: FrequencyItem) => {
+      if (filterLabel === item.label) {
+        clearSelection()
+        return
+      }
+      setFilterLabel(item.label)
+      setHighlightIds(item.entryIds)
+      const matching = points
+        .filter((p) => item.entryIds.includes(p.id))
+        .sort((a, b) => b.ts - a.ts)
+      setSelectedId(matching[0]?.id ?? null)
+    },
+    [filterLabel, points, clearSelection]
+  )
+
+  // 键盘 ← / → 切换记录，Esc 关闭
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+
+      if (e.key === 'Escape') {
+        if (selectedId != null || filterLabel != null) {
+          e.preventDefault()
+          clearSelection()
+        }
+        return
+      }
+
+      if (selectedId == null) return
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        selectByOffset(-1)
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        selectByOffset(1)
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [selectedId, filterLabel, clearSelection, selectByOffset])
 
   return (
     <div className="analysis-page panorama-page">
@@ -100,15 +194,38 @@ export default function AnalysisPage(): JSX.Element {
             <PanoramaTimeline
               points={points}
               selectedId={selectedId}
-              onSelect={setSelectedId}
+              highlightIds={highlightIds}
+              onToggleSelect={handleToggleSelect}
             />
-            {selectedPoint ? (
-              <SnapshotCard point={selectedPoint} onClose={() => setSelectedId(null)} />
-            ) : (
-              <p className="hint panorama-tip">{ZH.panoramaTip}</p>
-            )}
+            <div className="panorama-snapshot-panel">
+              {filterLabel ? (
+                <p className="hint panorama-filter-hint">
+                  {ZH.panoramaFreqFilterHint(filterLabel, highlightIds?.length ?? 0)}
+                </p>
+              ) : null}
+              {selectedPoint ? (
+                <SnapshotCard
+                  point={selectedPoint}
+                  thoughtTagOptions={thoughtTags}
+                  navIndex={navIndex >= 0 ? navIndex : 0}
+                  navTotal={navigableIds.length}
+                  canPrev={navIndex > 0}
+                  canNext={navIndex >= 0 && navIndex < navigableIds.length - 1}
+                  onPrev={() => selectByOffset(-1)}
+                  onNext={() => selectByOffset(1)}
+                  onClose={clearSelection}
+                  onEdit={onEditEntry ? () => onEditEntry(selectedPoint.id) : undefined}
+                />
+              ) : (
+                <p className="hint panorama-tip">{ZH.panoramaTip}</p>
+              )}
+            </div>
           </div>
-          <FrequencyPanel frequencies={frequencies} />
+          <FrequencyPanel
+            frequencies={frequencies}
+            activeLabel={filterLabel}
+            onItemClick={handleFreqItemClick}
+          />
         </div>
       )}
     </div>

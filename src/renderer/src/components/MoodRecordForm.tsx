@@ -1,34 +1,40 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { POLARITY_LABEL } from '../data/emotions'
-import { resolveTagLists, type TagListsConfig } from '../data/tagLists'
-import { formatDateShort, formatNowLocal } from '../utils/formatTime'
+import type { EntryRow } from '../../../main/database'
+import { resolveTagLists, resolveEmotionSpectrum, type TagListsConfig } from '../data/tagLists'
+import { formatClockLocal, formatDateShort } from '../utils/formatTime'
 import { restoreEntryToForm } from '../utils/entryFormRestore'
+import { getFactInputPlaceholder } from '../utils/factPlaceholder'
+import { FACT_SUPPLEMENT_PREFIX } from '../utils/entryParse'
 import { ZH } from '../i18n/zh'
 import CheckInDualForm from './CheckInDualForm'
+import EmotionSpectrumPicker from './EmotionSpectrumPicker'
+import FactSceneSection from './FactSceneSection'
 import IntensityEnergyBar from './IntensityEnergyBar'
 
 interface Props {
-  variant?: 'page' | 'popup'
+  variant?: 'page' | 'popup' | 'modal'
   /** 传入则为编辑已有记录 */
   editEntryId?: number
-  onSaved: () => void
+  /** 历史列表已加载时可直传，跳过 getEntry 查库 */
+  initialData?: EntryRow
+  onSaved: (updated?: EntryRow) => void
   onCancel?: () => void
 }
 
 export default function MoodRecordForm({
   variant = 'page',
   editEntryId,
+  initialData,
   onSaved,
   onCancel
 }: Props): JSX.Element {
   const isPopup = variant === 'popup'
+  const isModal = variant === 'modal'
   const isEdit = editEntryId != null
   const [recordTimeLabel, setRecordTimeLabel] = useState('')
   const [dateLabel, setDateLabel] = useState(formatDateShort())
   const [factTags, setFactTags] = useState<string[]>([])
   const [factSupplement, setFactSupplement] = useState('')
-  const [factNoteEditing, setFactNoteEditing] = useState(false)
-  const factNoteInputRef = useRef<HTMLInputElement>(null)
   const [bodyTags, setBodyTags] = useState<string[]>([])
   const [behaviorTags, setBehaviorTags] = useState<string[]>([])
   const [emotionIds, setEmotionIds] = useState<string[]>([])
@@ -44,18 +50,29 @@ export default function MoodRecordForm({
     null
   )
 
-  const emotionRef = useRef<HTMLElement>(null)
-  const factRef = useRef<HTMLElement>(null)
   const thoughtRef = useRef<HTMLElement>(null)
-  const bodyRef = useRef<HTMLElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
   const [occurredAtIso, setOccurredAtIso] = useState(() => new Date().toISOString())
   const [editLoading, setEditLoading] = useState(isEdit)
+  const [lastRecordTimeLabel, setLastRecordTimeLabel] = useState<string | null>(null)
+
+  const emotionSpectrum = resolveEmotionSpectrum(tagLists)
+  const factPlaceholder = getFactInputPlaceholder(factTags[0])
+
+  const loadLastRecordTime = useCallback(async (): Promise<void> => {
+    const all = await window.api.listAllEntries()
+    const latest = all.find((e) => !(isEdit && editEntryId != null && e.id === editEntryId))
+    if (!latest) {
+      setLastRecordTimeLabel(null)
+      return
+    }
+    setLastRecordTimeLabel(formatClockLocal(new Date(latest.occurred_at)))
+  }, [editEntryId, isEdit])
 
   useEffect(() => {
     if (isEdit) return
     const tick = (): void => {
-      setRecordTimeLabel(formatNowLocal())
+      setRecordTimeLabel(formatClockLocal())
       setDateLabel(formatDateShort())
     }
     tick()
@@ -63,33 +80,52 @@ export default function MoodRecordForm({
     return () => clearInterval(id)
   }, [isEdit])
 
+  /** 把数据库记录回填到表单各字段（新建与编辑共用） */
+  const fillForm = useCallback((row: EntryRow, thoughtTagsList: string[]) => {
+    const restored = restoreEntryToForm(row, thoughtTagsList)
+    setFactTags(restored.factTags)
+    setFactSupplement(restored.factSupplement)
+    setBodyTags(restored.bodyTags)
+    setBehaviorTags(restored.behaviorTags)
+    setEmotionIds(restored.emotionIds)
+    setIntensity(restored.intensity)
+    setThoughtTags(restored.thoughtTags)
+    setThoughtNote(restored.thoughtNote)
+    setOccurredAtIso(restored.occurredAt)
+    setRecordTimeLabel(formatClockLocal(new Date(restored.occurredAt)))
+    setDateLabel(formatDateShort(new Date(restored.occurredAt)))
+    setEditLoading(false)
+  }, [])
+
   useEffect(() => {
+    if (isEdit && editEntryId != null) setEditLoading(true)
+    // 始终从已保存设置加载标签词表；编辑模式再额外回填记录
     void window.api.getSettings().then((s) => {
       const lists = resolveTagLists(s.tagLists)
       setTagLists(lists)
       if (!isEdit || editEntryId == null) return
+      // 列表内存已有完整行数据时直接回填，避免多余查库
+      if (initialData && initialData.id === editEntryId) {
+        fillForm(initialData, lists.thoughtTags)
+        return
+      }
+      // 分析页跳转等场景：内存无数据时再查库
       void window.api.getEntry(editEntryId).then((row) => {
         if (!row) {
           setError(ZH.historyEntryMissing)
           setEditLoading(false)
           return
         }
-        const restored = restoreEntryToForm(row, lists.thoughtTags)
-        setFactTags(restored.factTags)
-        setFactSupplement(restored.factSupplement)
-        setBodyTags(restored.bodyTags)
-        setBehaviorTags(restored.behaviorTags)
-        setEmotionIds(restored.emotionIds)
-        setIntensity(restored.intensity)
-        setThoughtTags(restored.thoughtTags)
-        setThoughtNote(restored.thoughtNote)
-        setOccurredAtIso(restored.occurredAt)
-        setRecordTimeLabel(formatNowLocal(new Date(restored.occurredAt)))
-        setDateLabel(formatDateShort(new Date(restored.occurredAt)))
-        setEditLoading(false)
+        fillForm(row, lists.thoughtTags)
       })
     })
-  }, [editEntryId, isEdit])
+    // 仅在打开/切换编辑目标时加载，避免 entries 刷新时覆盖用户输入
+  }, [editEntryId, fillForm, initialData, isEdit])
+
+  useEffect(() => {
+    if (isEdit) return
+    void loadLastRecordTime()
+  }, [isEdit, loadLastRecordTime])
 
   /** 单选：再点同一项可取消；选新项会替换旧项 */
   const pickSingle = (current: string[], value: string): string[] =>
@@ -118,25 +154,10 @@ export default function MoodRecordForm({
     setBehaviorTags((prev) => pickSingle(prev, id))
   }
 
-  const openFactNoteInput = (): void => {
-    setFactNoteEditing(true)
-    requestAnimationFrame(() => factNoteInputRef.current?.focus())
-  }
-
-  const closeFactNoteInput = (): void => {
-    setFactNoteEditing(false)
-    if (!factSupplement.trim()) setFactSupplement('')
-  }
-
-  const confirmFactNote = (): void => {
-    setFactSupplement((v) => v.trim())
-    setFactNoteEditing(false)
-  }
-
   const buildFactText = (): string => {
     const parts = [...factTags]
     const extra = factSupplement.trim()
-    if (extra) parts.push(`${ZH.factSupplement}:${extra}`)
+    if (extra) parts.push(`${FACT_SUPPLEMENT_PREFIX}${extra}`)
     return parts.join(ZH.emotionJoin)
   }
 
@@ -173,21 +194,27 @@ export default function MoodRecordForm({
         intensity,
         occurredAt: isEdit ? occurredAtIso : new Date().toISOString()
       }
+      let updated: EntryRow | undefined
       if (isEdit && editEntryId != null) {
-        await window.api.updateEntry(editEntryId, payload)
+        const row = await window.api.updateEntry(editEntryId, payload)
+        if (!row) {
+          setError(ZH.saveFail)
+          return
+        }
+        updated = row
       } else {
         await window.api.createEntry(payload)
         setFactTags([])
         setFactSupplement('')
-        setFactNoteEditing(false)
         setBodyTags([])
         setBehaviorTags([])
         setThoughtTags([])
         setThoughtNote('')
         setEmotionIds([])
         setIntensity(5)
+        void loadLastRecordTime()
       }
-      onSaved()
+      onSaved(updated)
       if (isPopup) {
         setSaveSuccess(true)
         await new Promise((r) => setTimeout(r, 320))
@@ -213,7 +240,8 @@ export default function MoodRecordForm({
     occurredAtIso,
     onSaved,
     thoughtNote,
-    thoughtTags
+    thoughtTags,
+    loadLastRecordTime
   ])
 
   const handleSubmit = (e: React.FormEvent): void => {
@@ -234,10 +262,6 @@ export default function MoodRecordForm({
       }
 
       if (e.key === 'Escape') {
-        if (factNoteEditing) {
-          closeFactNoteInput()
-          return
-        }
         e.preventDefault()
         snoozeAndExit()
         return
@@ -251,63 +275,19 @@ export default function MoodRecordForm({
 
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [factNoteEditing, isPopup, pickIntensity, snoozeAndExit, submitForm])
+  }, [isPopup, pickIntensity, snoozeAndExit, submitForm])
 
   const levels = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
-  const factChips = (
-    <div className="chip-wrap">
-      {tagLists.factScenes.map((tag) => (
-        <button
-          key={tag}
-          type="button"
-          className={`chip sm scene ${factTags[0] === tag ? 'active' : ''}`}
-          onClick={() => pickFact(tag)}
-        >
-          {tag}
-        </button>
-      ))}
-      {factNoteEditing ? (
-        <input
-          ref={factNoteInputRef}
-          type="text"
-          className="chip-inline-input"
-          value={factSupplement}
-          onChange={(e) => setFactSupplement(e.target.value)}
-          placeholder={ZH.factSupplementPh}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              confirmFactNote()
-            }
-            if (e.key === 'Escape') {
-              e.preventDefault()
-              e.stopPropagation()
-              closeFactNoteInput()
-            }
-          }}
-          onBlur={() => confirmFactNote()}
-        />
-      ) : factSupplement.trim() ? (
-        <button
-          type="button"
-          className="chip sm scene active chip-note"
-          onClick={openFactNoteInput}
-          title={ZH.factAddNote}
-        >
-          {factSupplement.trim()}
-        </button>
-      ) : (
-        <button
-          type="button"
-          className="chip sm chip-add"
-          aria-label={ZH.factAddNote}
-          onClick={openFactNoteInput}
-        >
-          +
-        </button>
-      )}
-    </div>
+  const factSection = (
+    <FactSceneSection
+      factScenes={tagLists.factScenes}
+      factTags={factTags}
+      onPickFact={pickFact}
+      factSupplement={factSupplement}
+      setFactSupplement={setFactSupplement}
+      factPlaceholder={factPlaceholder}
+    />
   )
 
   const thoughtSection = (
@@ -344,31 +324,6 @@ export default function MoodRecordForm({
     </section>
   )
 
-  const bodyChips = (
-    <div className="chip-wrap">
-      {tagLists.bodyTags.map((tag) => (
-        <button
-          key={tag}
-          type="button"
-          className={`chip sm ${bodyTags[0] === tag ? 'active' : ''}`}
-          onClick={() => pickBodyTag(tag)}
-        >
-          {tag}
-        </button>
-      ))}
-      {tagLists.behaviorTags.map((b) => (
-        <button
-          key={b.id}
-          type="button"
-          className={`chip sm behavior ${behaviorTags[0] === b.id ? 'active' : ''}`}
-          onClick={() => pickBehaviorTag(b.id)}
-        >
-          {b.label.split('\uFF1A')[0]}
-        </button>
-      ))}
-    </div>
-  )
-
   if (editLoading) {
     return <p className="hint">{ZH.loading}</p>
   }
@@ -384,6 +339,7 @@ export default function MoodRecordForm({
         onPickIntensity={pickIntensity}
         emotionIds={emotionIds}
         onPickEmotion={pickEmotion}
+        emotionSpectrum={emotionSpectrum}
         tagLists={tagLists}
         focusZone={focusZone}
         setFocusZone={setFocusZone}
@@ -391,9 +347,7 @@ export default function MoodRecordForm({
         onPickFact={pickFact}
         factSupplement={factSupplement}
         setFactSupplement={setFactSupplement}
-        factNoteEditing={factNoteEditing}
-        setFactNoteEditing={setFactNoteEditing}
-        onConfirmFactNote={confirmFactNote}
+        factPlaceholder={factPlaceholder}
         thoughtTags={thoughtTags}
         onPickThought={pickThought}
         thoughtNote={thoughtNote}
@@ -411,12 +365,22 @@ export default function MoodRecordForm({
   }
 
   return (
-    <form className="record-compact" onSubmit={handleSubmit}>
-      <p className="record-compact__bar" aria-live="polite">
-        <span className="record-compact__time">
-          {isEdit ? ZH.historyEditAt(recordTimeLabel) : recordTimeLabel}
-        </span>
-      </p>
+    <form
+      className={`record-compact${isPopup ? ' record-compact--popup' : ''}${isModal ? ' record-compact--modal' : ''}`}
+      onSubmit={handleSubmit}
+    >
+      {!isModal ? (
+        <p className="record-compact__bar" aria-live="polite">
+          <span className="record-compact__time">
+            {isEdit ? ZH.historyEditAt(recordTimeLabel) : recordTimeLabel}
+          </span>
+          {!isEdit ? (
+            <span className="record-compact__last">
+              {lastRecordTimeLabel ? ZH.lastRecordAt(lastRecordTimeLabel) : ZH.lastRecordNone}
+            </span>
+          ) : null}
+        </p>
+      ) : null}
 
       <div className="record-compact__grid">
         <section
@@ -432,47 +396,22 @@ export default function MoodRecordForm({
           />
         </section>
 
-        <section className="zone zone-emotion zone-emotion-split">
-          <h2 className="zone-emotion-title">{ZH.emotion}</h2>
-          <div className="emotion-columns">
-            <div className="emotion-col emotion-col--negative">
-              <span className="emotion-col-label">{POLARITY_LABEL.negative}</span>
-              <div className="emotion-col-chips">
-                {tagLists.emotionsNegative.map((em) => (
-                  <button
-                    key={em.id}
-                    type="button"
-                    className={`chip sm negative ${emotionIds[0] === em.id ? 'active' : ''}`}
-                    onClick={() => pickEmotion(em.id)}
-                  >
-                    {em.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="emotion-col emotion-col--positive">
-              <span className="emotion-col-label">{POLARITY_LABEL.positive}</span>
-              <div className="emotion-col-chips">
-                {tagLists.emotionsPositive.map((em) => (
-                  <button
-                    key={em.id}
-                    type="button"
-                    className={`chip sm positive ${emotionIds[0] === em.id ? 'active' : ''}`}
-                    onClick={() => pickEmotion(em.id)}
-                  >
-                    {em.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+        <section className="zone zone-emotion zone-emotion-spectrum">
+          <h2 className="zone-emotion-title">{ZH.emotionCore}</h2>
+          <p className="hint zone-subhint">{ZH.emotionHint}</p>
+          <EmotionSpectrumPicker
+            emotions={emotionSpectrum}
+            selectedId={emotionIds[0]}
+            onPick={pickEmotion}
+          />
         </section>
 
         {thoughtSection}
 
         <section className="zone zone-fact">
-          <h2>{ZH.objectiveFact}</h2>
-          {factChips}
+          <h2>{ZH.factSceneTitle}</h2>
+          <p className="hint zone-subhint">{ZH.factSceneHint}</p>
+          {factSection}
         </section>
 
         <section className="zone zone-body zone-body-unified">

@@ -54,7 +54,7 @@ export const EMOTIONS: EmotionItem[] = [
   { id: 'alert', label: '警觉', polarity: 'neutral' }
 ]
 
-/** 事实情境标签：点选即可，无需长文 */
+/** 发生场景标签：点选即可，可配合自由输入 */
 export const FACT_SCENES = [
   '工作/学习',
   '在家',
@@ -65,21 +65,25 @@ export const FACT_SCENES = [
   '和朋友',
   '线上沟通',
   '通勤路上',
-  '睡眠不足',
-  '身体不适',
+  '完成了一件事',
+  '运动/散步',
+  '娱乐放松',
   '没什么特别'
 ]
 
-/** 主观想法：常见自动化思维（单选胶囊） */
+/** 主观想法：软化担忧 + 中性观察 + 接纳与积极应对 */
 export const THOUGHT_TAGS = [
-  '肯定会搞砸',
-  '他们在针对我',
-  '我不配',
-  '事情会变糟',
-  '我不该有这种感受',
-  '都是我的错',
-  '我应付不来',
-  '没什么想法'
+  '担心结果不如预期',
+  '有些自责',
+  '可能不太顺利',
+  '有点压力',
+  '还没完全想清楚',
+  '只是有点累了',
+  '没什么特别想法',
+  '允许自己有这种感受',
+  '我已经尽力了',
+  '这也会过去的',
+  '可以试试别的办法'
 ]
 
 export const BODY_TAGS = [
@@ -109,25 +113,45 @@ export const DURATION_OPTIONS = [
   { value: '120+', label: '超过 2 小时' }
 ]
 
+/** 设置页分组标题 */
 export const POLARITY_LABEL: Record<EmotionPolarity, string> = {
-  positive: '积极',
-  negative: '消极',
-  neutral: '中性'
+  positive: '愉快',
+  negative: '低落',
+  neutral: '平稳'
 }
 
-/** 录入页常用情绪（约 8+8，积极 / 消极分开展示） */
+/** 录入页情绪光谱：5 积极 + 5 中性 + 5 偏负（内省型，无高攻击性词） */
+export const SPECTRUM_EMOTION_IDS = [
+  'happy',
+  'grateful',
+  'relaxed',
+  'satisfied',
+  'warm',
+  'peaceful_pos',
+  'calm',
+  'curious',
+  'tired',
+  'blank',
+  'anxious',
+  'worried',
+  'frustrated',
+  'grieved',
+  'lonely'
+] as const
+
+/** 旧用户词表 merge 时补齐的中性情绪 */
+export const DEFAULT_NEUTRAL_EMOTION_IDS = [
+  'peaceful_pos',
+  'calm',
+  'curious',
+  'tired',
+  'blank'
+] as const
+
+/** 录入页常用情绪（由光谱派生，供设置页分组 fallback） */
 export const QUICK_EMOTION_IDS = {
-  negative: [
-    'anxious',
-    'grieved',
-    'angry',
-    'irritated',
-    'frustrated',
-    'wronged',
-    'stressed',
-    'lonely'
-  ],
-  positive: ['happy', 'relaxed', 'grateful', 'satisfied', 'excited', 'hopeful', 'warm', 'peaceful_pos']
+  positive: SPECTRUM_EMOTION_IDS.slice(0, 5),
+  negative: SPECTRUM_EMOTION_IDS.slice(10, 15)
 } as const
 
 const emotionMap = new Map(EMOTIONS.map((e) => [e.id, e]))
@@ -136,4 +160,16 @@ export function getQuickEmotions(polarity: 'positive' | 'negative'): EmotionItem
   return QUICK_EMOTION_IDS[polarity]
     .map((id) => emotionMap.get(id))
     .filter((e): e is EmotionItem => !!e)
+}
+
+export function getDefaultNeutralEmotions(): EmotionItem[] {
+  return DEFAULT_NEUTRAL_EMOTION_IDS.map((id) => emotionMap.get(id)).filter(
+    (e): e is EmotionItem => !!e
+  )
+}
+
+export function getSpectrumEmotions(): EmotionItem[] {
+  return SPECTRUM_EMOTION_IDS.map((id) => emotionMap.get(id)).filter(
+    (e): e is EmotionItem => !!e
+  )
 }

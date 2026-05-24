@@ -1,4 +1,4 @@
-/** 记录页情绪标签（积极 / 消极） */
+/** 记录页情绪标签 */
 export interface RecordTagEmotion {
   id: string
   label: string
@@ -10,10 +10,13 @@ export interface RecordTagBehavior {
   label: string
 }
 
-/** 记录页三块可自定义标签 */
+/** 记录页可自定义标签 */
 export interface TagListsConfig {
-  emotionsNegative: RecordTagEmotion[]
+  /** 录入页情绪光谱（愉快→平稳→低落）；设置页编辑三组后自动重建 */
+  emotionsSpectrum?: RecordTagEmotion[]
   emotionsPositive: RecordTagEmotion[]
+  emotionsNeutral?: RecordTagEmotion[]
+  emotionsNegative: RecordTagEmotion[]
   factScenes: string[]
   /** 主观想法：常见自动化思维胶囊 */
   thoughtTags: string[]
