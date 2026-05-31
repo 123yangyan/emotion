@@ -1,6 +1,6 @@
 {
   "name": "emotion-diary",
-  "version": "2.1.0",
+  "version": "3.1.0",
   "description": "Windows 情绪记录 · 本地离线 · 强提醒",
   "main": "./out/main/index.js",
   "author": "123yangyan",
