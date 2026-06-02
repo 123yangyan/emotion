@@ -1,4 +1,4 @@
-import type { EntryInput, EntryRow } from '../main/database'
+import type { EntryInput, EntryRow, AiInsightRow } from '../main/database'
 import type { AppSettings } from '../shared/types'
 import type { UpdateCheckResponse } from '../shared/update'
 
@@ -36,6 +36,9 @@ export interface ElectronAPI {
   downloadUpdate: () => Promise<{ ok: true } | { ok: false; message: string }>
   installUpdate: () => Promise<{ ok: true }>
   openExternalUrl: (url: string) => Promise<{ ok: boolean }>
+  getAiInsights: () => Promise<AiInsightRow[]>
+  getLatestAiInsight: (withinDays?: number) => Promise<AiInsightRow | null>
+  triggerAiExport: (dateStr?: string) => Promise<{ ok: true; path: string; count: number }>
   onUpdateProgress: (callback: (percent: number) => void) => () => void
 }
 

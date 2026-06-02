@@ -1,7 +1,6 @@
 import { useRef } from 'react'
-import type { TagListsConfig } from '../data/tagLists'
 import ValueEnergyGrid from './ValueEnergyGrid'
-import FactSceneSection from './FactSceneSection'
+import DiaryInput from './DiaryInput'
 import { ZH } from '../i18n/zh'
 
 export type RecordViewportVariant = 'page' | 'popup' | 'modal'
@@ -18,18 +17,10 @@ interface Props {
   coordY: number
   hasCoordSelection: boolean
   onPickCoord: (x: number, y: number) => void
-  tagLists: TagListsConfig
-  focusZone?: 'coord' | 'fact' | 'thought' | null
-  setFocusZone?: (z: 'coord' | 'fact' | 'thought' | null) => void
-  factTags: string[]
-  onPickFact: (tag: string) => void
-  factSupplement: string
-  setFactSupplement: (v: string) => void
-  factPlaceholder: string
-  thoughtTags: string[]
-  onPickThought: (tag: string) => void
-  thoughtNote: string
-  setThoughtNote: (v: string) => void
+  focusZone?: 'coord' | 'diary' | null
+  setFocusZone?: (z: 'coord' | 'diary' | null) => void
+  diaryText: string
+  setDiaryText: (v: string) => void
   /** 疲劳检查模式：底部追加额外区块 */
   isFatigueCheck?: boolean
   fatigueExtra?: React.ReactNode
@@ -42,8 +33,8 @@ interface Props {
 
 function zoneClass(
   isPopup: boolean,
-  focusZone: 'coord' | 'fact' | 'thought' | null,
-  zone: 'coord' | 'fact' | 'thought',
+  focusZone: 'coord' | 'diary' | null,
+  zone: 'coord' | 'diary',
   base: string
 ): string {
   if (!isPopup) return base
@@ -63,18 +54,10 @@ export default function RecordViewportForm({
   coordY,
   hasCoordSelection,
   onPickCoord,
-  tagLists,
   focusZone = null,
   setFocusZone,
-  factTags,
-  onPickFact,
-  factSupplement,
-  setFactSupplement,
-  factPlaceholder,
-  thoughtTags,
-  onPickThought,
-  thoughtNote,
-  setThoughtNote,
+  diaryText,
+  setDiaryText,
   isFatigueCheck = false,
   fatigueExtra,
   error,
@@ -86,8 +69,8 @@ export default function RecordViewportForm({
   const isPopup = variant === 'popup'
   const isModal = variant === 'modal'
   const coordRef = useRef<HTMLElement>(null)
-  const factRef = useRef<HTMLElement>(null)
-  const thoughtRef = useRef<HTMLElement>(null)
+  const diaryRef = useRef<HTMLElement>(null)
+  const diaryAutoFocus = variant === 'page' && !isEdit
 
   const formClass = [
     'record-viewport',
@@ -98,7 +81,7 @@ export default function RecordViewportForm({
     .filter(Boolean)
     .join(' ')
 
-  const focusHandlers = (zone: 'coord' | 'fact' | 'thought') =>
+  const focusHandlers = (zone: 'coord' | 'diary') =>
     isPopup && setFocusZone
       ? {
           tabIndex: 0 as const,
@@ -113,108 +96,62 @@ export default function RecordViewportForm({
       ? ZH.checkInSaved
       : isEdit
         ? ZH.historySaveEdit
-        : isPopup
-          ? ZH.saveRecordCtrlEnter
-          : ZH.saveRecordEnter
+        : ZH.saveRecord
+
+  const lastLabel = isEdit
+    ? `${ZH.historyEditAt(recordTimeLabel)} · ${dateLabel}`
+    : lastRecordTimeLabel
+      ? ZH.lastRecordAt(lastRecordTimeLabel)
+      : ZH.lastRecordNone
 
   return (
     <form ref={formRef} className={formClass} onSubmit={onSubmit}>
-      {/* 疲劳检查区块（疲劳模式置顶，作为主要内容） */}
       {isFatigueCheck && fatigueExtra}
 
-      {/* 坐标点选区（仅非疲劳模式显示） */}
-      {!isFatigueCheck && (
-        <section
-          ref={coordRef}
-          className={zoneClass(
-            isPopup,
-            focusZone,
-            'coord',
-            'record-viewport__card record-viewport__coord'
-          )}
-          {...focusHandlers('coord')}
-        >
-          <h3>
-            {ZH.coordTitle}
-            <span>{ZH.coordHint}</span>
-          </h3>
-          <ValueEnergyGrid
-            coordX={coordX}
-            coordY={coordY}
-            hasSelection={hasCoordSelection}
-            onPick={onPickCoord}
-          />
-        </section>
-      )}
-
-      {/* 事实/想法：疲劳检查模式不显示 */}
       {!isFatigueCheck && (
         <div className="record-viewport__split">
-          {/* 事实/场景 */}
           <section
-            ref={factRef}
+            ref={coordRef}
             className={zoneClass(
               isPopup,
               focusZone,
-              'fact',
-              'record-viewport__card record-viewport__input-col'
+              'coord',
+              'record-viewport__card record-viewport__coord'
             )}
-            {...focusHandlers('fact')}
+            {...focusHandlers('coord')}
           >
-            <h3>
-              {ZH.factSceneTitle}
-              <span>{ZH.factSceneHintShort}</span>
-            </h3>
-            <FactSceneSection
-              factScenes={tagLists.factScenes}
-              factTags={factTags}
-              onPickFact={onPickFact}
-              factSupplement={factSupplement}
-              setFactSupplement={setFactSupplement}
-              factPlaceholder={factPlaceholder}
-              useTextarea
+            <p className="coord-section-label">{ZH.coordSectionLabel}</p>
+            <ValueEnergyGrid
+              coordX={coordX}
+              coordY={coordY}
+              hasSelection={hasCoordSelection}
+              onPick={onPickCoord}
             />
           </section>
 
-          {/* 主观想法 */}
           <section
-            ref={thoughtRef}
+            ref={diaryRef}
             className={zoneClass(
               isPopup,
               focusZone,
-              'thought',
-              'record-viewport__card record-viewport__input-col'
+              'diary',
+              'record-viewport__card record-viewport__diary'
             )}
-            {...focusHandlers('thought')}
+            {...focusHandlers('diary')}
           >
-            <h3>
-              {ZH.subjectiveThought}
-              <span>{ZH.thoughtHintShort}</span>
-            </h3>
-            <div className="record-input-stack record-input-stack--elastic">
-              <div className="tag-flow thought-chips">
-                {tagLists.thoughtTags.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    className={`chip sm thought ${thoughtTags[0] === tag ? 'active' : ''}`}
-                    onClick={() => onPickThought(tag)}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
-              <textarea
-                className="single-line-input"
-                rows={1}
-                value={thoughtNote}
-                onChange={(e) => setThoughtNote(e.target.value)}
-                placeholder={ZH.thoughtNotePh}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') e.preventDefault()
-                }}
-              />
+            <div className="diary-date-header">
+              <span className="diary-date-header__day">{ZH.diaryDateDay(dateLabel)}</span>
+              {ZH.diaryDateWeekday(dateLabel) ? (
+                <span className="diary-date-header__weekday">{ZH.diaryDateWeekday(dateLabel)}</span>
+              ) : null}
             </div>
+            <DiaryInput
+              value={diaryText}
+              onChange={setDiaryText}
+              placeholder={ZH.diaryPlaceholder}
+              autoFocus={diaryAutoFocus}
+              scrollable={!isPopup}
+            />
           </section>
         </div>
       )}
@@ -228,26 +165,27 @@ export default function RecordViewportForm({
         <footer
           className={`record-viewport__action${isEdit && onCancel ? ' record-viewport__action--split' : ''}`}
         >
-          {isEdit && onCancel ? (
-            <button type="button" className="btn ghost" onClick={onCancel} disabled={saving}>
-              {ZH.historyCancelEdit}
-            </button>
+          {!isModal && !isPopup ? (
+            <span className="record-viewport__last">{lastLabel}</span>
           ) : null}
-          <button
-            type="submit"
-            className={`record-viewport__save${saveSuccess ? ' is-success' : ''}`}
-            disabled={saving || saveSuccess}
-          >
-            {saveLabel}
-          </button>
+          <div className="record-viewport__action-buttons">
+            {isEdit && onCancel ? (
+              <button type="button" className="btn ghost" onClick={onCancel} disabled={saving}>
+                {ZH.historyCancelEdit}
+              </button>
+            ) : null}
+            <button
+              type="submit"
+              className={`record-viewport__save${saveSuccess ? ' is-success' : ''}`}
+              disabled={saving || saveSuccess}
+            >
+              {saveLabel}
+            </button>
+          </div>
         </footer>
-        {!isModal ? (
-          <span className="record-viewport__last">
-            {isEdit
-              ? `${ZH.historyEditAt(recordTimeLabel)} · ${dateLabel}`
-              : lastRecordTimeLabel
-                ? ZH.lastRecordAt(lastRecordTimeLabel)
-                : ZH.lastRecordNone}
+        {!isModal && isPopup ? (
+          <span className="record-viewport__last record-viewport__last--popup">
+            {lastLabel}
           </span>
         ) : null}
       </div>

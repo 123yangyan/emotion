@@ -20,12 +20,20 @@ import {
   deleteEntries,
   getEntryById,
   exportAllEntries,
+  exportJsonBackup,
   getDailyTitle,
   setDailyTitle,
   getDbPath,
   hasEntryToday,
+  getAiInsights,
+  getLatestAiInsight,
   type EntryInput
 } from './database'
+import {
+  initAiExportService,
+  stopAiExportService,
+  triggerManualExport
+} from './ai-export-service'
 import { loadSettings, saveSettings } from './settings'
 import {
   processDailyCheckIn,
@@ -178,10 +186,10 @@ function registerIpc(): void {
   })
 
   ipcMain.handle('export:json', async () => {
-    const data = exportAllEntries()
+    const data = exportJsonBackup()
     const result = await dialog.showSaveDialog(mainWindow!, {
-      title: '导出状态记录',
-      defaultPath: `emotion-export-${new Date().toISOString().slice(0, 10)}.json`,
+      title: '导出 JSON 备份',
+      defaultPath: `emotion-backup-${new Date().toISOString().slice(0, 10)}.json`,
       filters: [{ name: 'JSON', extensions: ['json'] }]
     })
     if (result.canceled || !result.filePath) return { ok: false }
@@ -231,6 +239,14 @@ function registerIpc(): void {
     void shell.openExternal(url)
     return { ok: true }
   })
+
+  ipcMain.handle('ai:getInsights', () => getAiInsights())
+
+  ipcMain.handle('ai:getLatestInsight', (_e, withinDays?: number) =>
+    getLatestAiInsight(withinDays ?? 3)
+  )
+
+  ipcMain.handle('ai:triggerExport', (_e, dateStr?: string) => triggerManualExport(dateStr))
 }
 
 function restartCheckInTimer(): void {
@@ -242,6 +258,7 @@ function restartCheckInTimer(): void {
 
 app.whenReady().then(() => {
   initDatabase()
+  initAiExportService()
   initAutoUpdater()
   registerIpc()
   createMainWindow()
@@ -254,6 +271,7 @@ app.on('before-quit', () => {
   isQuitting = true
   if (checkInTimer) clearInterval(checkInTimer)
   clearTestReminderOnQuit()
+  stopAiExportService()
 })
 
 app.on('window-all-closed', () => {

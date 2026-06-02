@@ -99,14 +99,9 @@ export default function PanoramaTimeline({
                     <div className="chart-tooltip panorama-tooltip">
                       <p className="chart-tooltip__time">{p.timeLabel}</p>
                       <p><strong>{p.quadrantLabel}</strong></p>
-                      {p.factTags.length > 0 ? (
+                      {p.diaryText ? (
                         <p>
-                          {ZH.chartTooltipFact}：{p.factTags.join(ZH.emotionJoin)}
-                        </p>
-                      ) : null}
-                      {p.thoughtRaw ? (
-                        <p>
-                          {ZH.chartTooltipThought}：{p.thoughtRaw}
+                          {ZH.diaryTitle}：{p.diaryText.length > 60 ? `${p.diaryText.slice(0, 60)}…` : p.diaryText}
                         </p>
                       ) : null}
                       <p className="hint">{ZH.panoramaClickHint}</p>

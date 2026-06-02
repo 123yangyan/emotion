@@ -108,3 +108,73 @@ export function parseEntryRow(row: EntryRowLike): ParsedEntry {
 export function parseEntries(rows: EntryRowLike[]): ParsedEntry[] {
   return rows.map(parseEntryRow).sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime())
 }
+
+/** 将 fact 字段（含旧版标签格式）合并为可读的日记正文 */
+export function mergeLegacyFactToDiary(fact: string, reactionNote?: string): string {
+  const trimmed = fact.trim()
+  if (!trimmed) return reactionNote?.trim() ?? ''
+
+  const { tags, supplement } = parseFactField(fact)
+  const hasLegacySupplement = supplement.length > 0
+
+  if (tags.length === 0) {
+    return supplement || trimmed
+  }
+
+  if (hasLegacySupplement) {
+    const tagPart = tags.join(FACT_JOIN)
+    return `${tagPart}\u3002${supplement}`
+  }
+
+  if (tags.length === 1 && trimmed === tags[0]) {
+    return tags[0]
+  }
+
+  return tags.join(FACT_JOIN)
+}
+
+export interface EntryDiaryLike extends EntryRowLike {
+  thought?: string
+}
+
+/** 历史/分析展示用：统一输出日记正文 */
+export function getDiaryDisplayText(row: EntryDiaryLike): string {
+  const body = mergeLegacyFactToDiary(row.fact, row.reaction_note)
+  return body.trim()
+}
+
+const THOUGHT_JOIN = '\u3001'
+
+/** 解析 thought 字段中的已知标签与自由文本 */
+export function splitThoughtField(
+  raw: string,
+  knownTags: string[]
+): { tags: string[]; quote: string } {
+  if (!raw.trim()) return { tags: [], quote: '' }
+  const parts = raw.split(THOUGHT_JOIN).map((p) => p.trim()).filter(Boolean)
+  const known = new Set(knownTags)
+  const tags: string[] = []
+  const extras: string[] = []
+  for (const p of parts) {
+    if (known.has(p)) tags.push(p)
+    else extras.push(p)
+  }
+  return { tags, quote: extras.join(THOUGHT_JOIN) }
+}
+
+/** 编辑表单回填：合并 fact 与旧版 thought */
+export function restoreDiaryTextForForm(
+  row: EntryDiaryLike,
+  thoughtTagOptions: string[]
+): string {
+  let text = getDiaryDisplayText(row)
+  const thoughtRaw = row.thought?.trim() ?? ''
+  if (!thoughtRaw) return text
+
+  const { tags, quote } = splitThoughtField(thoughtRaw, thoughtTagOptions)
+  const thoughtParts = [...tags, quote].filter(Boolean)
+  if (thoughtParts.length === 0) return text
+
+  const appendix = thoughtParts.join(THOUGHT_JOIN)
+  return text ? `${text}\n\n\u9644\uff1a${appendix}` : appendix
+}

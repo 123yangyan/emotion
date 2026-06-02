@@ -38,8 +38,8 @@ export interface FatigueCheck {
 
 /** 应用设置（与主进程 settings.ts 同步） */
 export interface AppSettings {
-  /** 提醒间隔（小时）：今日未记录时，每隔 N 小时弹一次 */
-  reminderIntervalHours: number
+  /** 提醒间隔（分钟）：按设定间隔弹窗提醒 */
+  reminderIntervalMinutes: number
   /** 静默时段开始，如 22:00 */
   quietStart: string
   /** 静默时段结束，如 08:00 */

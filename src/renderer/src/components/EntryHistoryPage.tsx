@@ -5,9 +5,11 @@ import { buildEmotionLabelMap, resolveTagLists } from '../data/tagLists'
 import { ZH } from '../i18n/zh'
 import {
   buildHistoryRowView,
+  formatDiaryDateLabel,
   HISTORY_PAGE_SIZE,
   type HistoryRowView
 } from '../utils/historyRowPreview'
+import CoordMiniBadge from './CoordMiniBadge'
 import MoodRecordForm from './MoodRecordForm'
 
 interface Props {
@@ -296,15 +298,14 @@ export default function EntryHistoryPage({
               return (
                 <li key={row.id}>
                   {showDate ? (
-                    <div className="history-rows__date">{formatDateLabel(row.dateKey)}</div>
+                    <div className="history-rows__date">{formatDiaryDateLabel(row.dateKey)}</div>
                   ) : null}
                   <div
-                    className={`history-row-item history-row history-row--${row.polarity} ${row.isAvoidance ? 'history-row--avoidance' : ''} ${checked ? 'is-selected' : ''}`}
+                    className={`history-card history-card--${row.polarity} ${row.isAvoidance ? 'history-card--avoidance' : ''} ${checked ? 'is-selected' : ''}`}
                     title={row.fullTitle}
                   >
-                    {/* 左侧：复选框 + 核心内容，与操作按钮保持在同一视线范围内 */}
-                    <div className="history-row__content">
-                      <label className="history-row__check" aria-label={ZH.historySelectPage}>
+                    <div className="history-card__content">
+                      <label className="history-card__check" aria-label={ZH.historySelectPage}>
                         <input
                           type="checkbox"
                           checked={checked}
@@ -312,82 +313,50 @@ export default function EntryHistoryPage({
                           onClick={(e) => e.stopPropagation()}
                         />
                       </label>
-                      <div className="history-row__body">
-                        <div className="history-row__main-content">
-                          {/* 一级主标题：时间锚点 → 情绪名 → 分数/场景等辅助信息 */}
-                          <div className="history-row__line history-row__line--primary">
-                            <time className="history-row__time">{row.time}</time>
-                            <span className="history-row__time-sep" aria-hidden>
-                              —
-                            </span>
-                            <span className="history-row__emotion">{row.emotionLabel}</span>
-                            {row.isAvoidance ? (
-                              <span className="history-row__avoidance-badge">{ZH.historyAvoidanceBadge}</span>
+                      <div className="history-card__main">
+                        <time className="history-card__time">{row.time}</time>
+                        <div className="history-card__body">
+                          <div className="history-card__diary-col">
+                            {row.diaryBody ? (
+                              <p className="history-card__diary-body">{row.diaryBody}</p>
+                            ) : (
+                              <p className="history-card__diary-empty">{ZH.historyDiaryEmpty}</p>
+                            )}
+                            {row.legacyThoughtNote ? (
+                              <p className="history-card__legacy-thought">
+                                {ZH.historyLegacyThought}
+                                {row.legacyThoughtNote}
+                              </p>
                             ) : null}
-                            <span className="history-row__intensity">
-                              {row.intensity}
-                              {'\u5206'}
-                            </span>
-                            {row.sceneText ? (
-                              <span className="history-row__context-tag">
-                                <span className="history-row__context-icon" aria-hidden>
-                                  📍
-                                </span>
-                                {row.sceneText}
-                              </span>
+                            {row.bodySummary ? (
+                              <p className="history-card__legacy-body">{row.bodySummary}</p>
                             ) : null}
-                            {row.factNoteText ? (
-                              <span className="history-row__fact-note">{row.factNoteText}</span>
+                            {row.hasFatigue ? (
+                              <p className="history-card__fatigue">{row.fatigueLabel}</p>
                             ) : null}
                           </div>
-                          {row.thoughtSummary || row.quoteText ? (
-                            <div className="history-row__sub-thought">
-                              <span className="history-row__thought-label">
-                                <span aria-hidden>💭 </span>
-                                {ZH.historyThoughtFlash}
+                          <div className="history-card__coord-col">
+                            {row.isAvoidance ? (
+                              <span className="history-card__avoidance-badge">
+                                {ZH.historyAvoidanceBadge}
                               </span>
-                              {row.thoughtSummary ? (
-                                <span className="history-row__thought-tag">{row.thoughtSummary}</span>
-                              ) : null}
-                              {row.thoughtSummary && row.quoteText ? (
-                                <span className="history-row__thought-sep" aria-hidden>
-                                  ·
-                                </span>
-                              ) : null}
-                              {row.quoteText ? (
-                                <q className="history-row__quote">{row.quoteText}</q>
-                              ) : null}
-                            </div>
-                          ) : null}
-                          {row.bodySummary ? (
-                            <div className="history-row__sub-body">
-                              <span className="history-row__body-label" aria-hidden>
-                                🫀
-                              </span>
-                              <span className="history-row__body-tags">{row.bodySummary}</span>
-                            </div>
-                          ) : null}
-                          {row.hasFatigue ? (
-                            <div className="history-row__sub-fatigue">
-                              <span className="history-row__fatigue-badge" aria-hidden>📊</span>
-                              <span className="history-row__fatigue-text">{row.fatigueLabel}</span>
-                            </div>
-                          ) : null}
+                            ) : null}
+                            <CoordMiniBadge coordX={row.coordX} coordY={row.coordY} />
+                          </div>
                         </div>
                       </div>
                     </div>
-                    {/* 右侧：操作按钮紧跟内容尾部，不再贴死屏幕边缘 */}
-                    <div className="history-row__actions">
+                    <div className="history-card__actions">
                       <button
                         type="button"
-                        className="history-row__link"
+                        className="history-card__link"
                         onClick={() => setEditingId(row.id)}
                       >
                         {ZH.historyEdit}
                       </button>
                       <button
                         type="button"
-                        className="history-row__link history-row__link--danger"
+                        className="history-card__link history-card__link--danger"
                         onClick={() => void handleDelete(row)}
                       >
                         {ZH.historyDelete}
@@ -500,7 +469,7 @@ export default function EntryHistoryPage({
                   <time className="history-modal-bar__time">{editingRowView.time}</time>
                 ) : null}
                 {editingRowView ? (
-                  <span className="history-modal-bar__emotion">{editingRowView.emotionLabel}</span>
+                  <span className="history-modal-bar__emotion">{editingRowView.quadrantLabel}</span>
                 ) : null}
               </div>
               <button type="button" className="btn ghost" onClick={closeEditModal}>
@@ -520,9 +489,4 @@ export default function EntryHistoryPage({
       ) : null}
     </div>
   )
-}
-
-function formatDateLabel(dateKey: string): string {
-  const [y, m, d] = dateKey.split('-')
-  return `${y}/${m}/${d}`
 }

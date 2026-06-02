@@ -1,0 +1,24 @@
+{
+  "schema_version": 2,
+  "date": "{{DATE}}",
+  "analyzed_at": "{{ANALYZED_AT}}",
+  "entry_count": 3,
+  "risk_level": "high",
+  "key_insight": "连续多条高耗能内耗记录，出现绝对化自我否定，建议暂停重要决策",
+  "summary": "昨日共 3 条记录，全部落在内耗陷阱或攻坚区高耗能段。thought 中「毫无意义」「我不适合」出现 2 次，存在灾难化与自我否定。晚间 20 点后仍有一次高耗能复盘。若类似模式持续 3 天以上，建议寻求专业支持。",
+  "quadrant_stats": {
+    "攻坚区": 1,
+    "心流区": 0,
+    "机械区": 0,
+    "内耗陷阱": 2
+  },
+  "cognitive_distortions": [
+    { "type": "自我否定", "quote": "我做什么都没用", "entry_id": 4 }
+  ],
+  "patterns": ["[跨日] 晚间高耗能复盘", "绝对化自我否定"],
+  "risk_signals": ["连续内耗陷阱", "自我否定用语", "晚间仍高耗能"],
+  "recommendations": ["暂停重要决策，先休息 30 分钟", "若持续数天，考虑寻求专业支持"],
+  "related_entries": [
+    { "entry_id": 4, "occurred_at": "{{DATE}}T20:10:00", "note": "内耗陷阱 · 加班复盘" }
+  ]
+}

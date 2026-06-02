@@ -1,0 +1,8 @@
+{
+  "date": "{{DATE}}",
+  "analyzed_at": "{{ANALYZED_AT}}",
+  "risk_level": "low",
+  "key_insight": "今日记录较少，整体耗能平稳，暂无明显风险信号",
+  "patterns": ["上午心流区记录 1 条"],
+  "recommendations": ["保持当前节奏，傍晚可简短复盘"]
+}

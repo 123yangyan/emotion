@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { EntryInput, EntryRow } from '../main/database'
+import type { EntryInput, EntryRow, AiInsightRow } from '../main/database'
 import type { AppSettings } from '../shared/types'
 
 import type { UpdateCheckResponse } from '../shared/update'
@@ -46,6 +46,13 @@ const api = {
   installUpdate: (): Promise<{ ok: true }> => ipcRenderer.invoke('update:install'),
   openExternalUrl: (url: string): Promise<{ ok: boolean }> =>
     ipcRenderer.invoke('app:openExternal', url),
+  getAiInsights: (): Promise<AiInsightRow[]> => ipcRenderer.invoke('ai:getInsights'),
+  getLatestAiInsight: (withinDays?: number): Promise<AiInsightRow | null> =>
+    ipcRenderer.invoke('ai:getLatestInsight', withinDays),
+  triggerAiExport: (
+    dateStr?: string
+  ): Promise<{ ok: true; path: string; count: number }> =>
+    ipcRenderer.invoke('ai:triggerExport', dateStr),
   onUpdateProgress: (callback: (percent: number) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, payload: { percent: number }): void => {
       callback(payload.percent)

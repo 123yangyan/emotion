@@ -4,10 +4,11 @@ import DayChart from './components/DayChart'
 import AnalysisPage from './components/AnalysisPage'
 import EntryHistoryPage from './components/EntryHistoryPage'
 import SettingsPage from './components/SettingsPage'
+import AiInsightPage from './components/AiInsightPage'
 import CheckInPanel from './components/CheckInPanel'
 import { ZH } from './i18n/zh'
 
-type Tab = 'record' | 'history' | 'chart' | 'analysis' | 'settings'
+type Tab = 'record' | 'history' | 'chart' | 'analysis' | 'insight' | 'settings'
 
 /** 设为 true 可在顶栏重新显示「今日曲线」页签（含四象限矩阵，DayChart 组件仍保留） */
 const SHOW_CHART_TAB = true
@@ -17,6 +18,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'history', label: ZH.tabHistory },
   { id: 'chart', label: ZH.tabChart },
   { id: 'analysis', label: ZH.tabAnalysis },
+  { id: 'insight', label: ZH.tabInsight },
   { id: 'settings', label: ZH.tabSettings }
 ]
 
@@ -78,6 +80,7 @@ export default function App() {
             <RecordForm
               key={tagListsVersion}
               onSaved={() => showToast(ZH.toastSaved)}
+              onViewInsight={() => setTab('insight')}
             />
           </div>
         )}
@@ -100,12 +103,16 @@ export default function App() {
             }}
           />
         )}
-        {tab === 'settings' && (
-          <SettingsPage
-            onToast={showToast}
-            onTagsSaved={() => setTagListsVersion((v) => v + 1)}
+        {tab === 'insight' && (
+          <AiInsightPage
+            key={tagListsVersion}
+            onEditEntry={(id) => {
+              setHistoryEditId(id)
+              setTab('history')
+            }}
           />
         )}
+        {tab === 'settings' && <SettingsPage onToast={showToast} />}
       </main>
 
       {toast ? <div className="toast">{toast}</div> : null}

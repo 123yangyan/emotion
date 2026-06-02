@@ -42,6 +42,36 @@ export interface NudgeRow {
   status: string
 }
 
+export type AiRiskLevel = 'low' | 'medium' | 'high'
+
+/** AI 分析洞察（写入 Store.ai_insights[]） */
+export interface AiInsightRow {
+  id: number
+  date: string
+  analyzed_at: string
+  risk_level: AiRiskLevel
+  key_insight: string
+  /** v1 兼容列，ingest 时从 payload 同步 */
+  patterns: string
+  recommendations: string
+  /** v2：AI 返回的扩展字段 JSON object */
+  payload?: string
+  manifest_version?: number
+}
+
+export interface AiInsightInput {
+  date: string
+  analyzed_at: string
+  risk_level: AiRiskLevel
+  key_insight: string
+  patterns: string[] | string
+  recommendations: string[] | string
+  payload?: Record<string, unknown> | string
+  manifest_version?: number
+  /** 为 true 时合并 payload，不清空未提及字段 */
+  merge?: boolean
+}
+
 interface PersonaRow {
   id: number
   name: string
@@ -52,23 +82,46 @@ interface Store {
   entries: EntryRow[]
   personas: PersonaRow[]
   nudges: NudgeRow[]
+  ai_insights: AiInsightRow[]
   settings: Record<string, string>
-  counters: { entry: number; persona: number; nudge: number }
+  counters: { entry: number; persona: number; nudge: number; ai_insight: number }
 }
 
 let storePath = ''
 
-function loadStore(): Store {
-  if (!existsSync(storePath)) {
-    return {
-      entries: [],
-      personas: [],
-      nudges: [],
-      settings: {},
-      counters: { entry: 0, persona: 0, nudge: 0 }
+function emptyStore(): Store {
+  return {
+    entries: [],
+    personas: [],
+    nudges: [],
+    ai_insights: [],
+    settings: {},
+    counters: { entry: 0, persona: 0, nudge: 0, ai_insight: 0 }
+  }
+}
+
+function normalizeStore(raw: Partial<Store>): Store {
+  const base = emptyStore()
+  return {
+    entries: raw.entries ?? base.entries,
+    personas: raw.personas ?? base.personas,
+    nudges: raw.nudges ?? base.nudges,
+    ai_insights: raw.ai_insights ?? base.ai_insights,
+    settings: raw.settings ?? base.settings,
+    counters: {
+      entry: raw.counters?.entry ?? 0,
+      persona: raw.counters?.persona ?? 0,
+      nudge: raw.counters?.nudge ?? 0,
+      ai_insight: raw.counters?.ai_insight ?? 0
     }
   }
-  return JSON.parse(readFileSync(storePath, 'utf-8')) as Store
+}
+
+function loadStore(): Store {
+  if (!existsSync(storePath)) {
+    return emptyStore()
+  }
+  return normalizeStore(JSON.parse(readFileSync(storePath, 'utf-8')) as Partial<Store>)
 }
 
 function saveStore(store: Store): void {
@@ -84,13 +137,7 @@ export function initDatabase(): void {
   mkdirSync(dir, { recursive: true })
   storePath = join(dir, 'emotion-diary.json')
   if (!existsSync(storePath)) {
-    saveStore({
-      entries: [],
-      personas: [],
-      nudges: [],
-      settings: {},
-      counters: { entry: 0, persona: 0, nudge: 0 }
-    })
+    saveStore(emptyStore())
   }
 }
 
@@ -229,6 +276,60 @@ export function exportAllEntries(): EntryRow[] {
   return [...loadStore().entries].sort((a, b) => b.occurred_at.localeCompare(a.occurred_at))
 }
 
+/** JSON 备份结构（含 AI 洞察） */
+export interface JsonBackupExport {
+  format: 'emotion-diary-backup'
+  version: 2
+  exportedAt: string
+  entries: EntryRow[]
+  ai_insights: Array<
+    Omit<AiInsightRow, 'patterns' | 'recommendations' | 'payload'> & {
+      patterns: string[]
+      recommendations: string[]
+      payload?: Record<string, unknown>
+    }
+  >
+}
+
+function serializeInsightForExport(row: AiInsightRow): JsonBackupExport['ai_insights'][number] {
+  let payload: Record<string, unknown> | undefined
+  if (row.payload) {
+    try {
+      const parsed = JSON.parse(row.payload) as unknown
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        payload = parsed as Record<string, unknown>
+      }
+    } catch {
+      /* 保留 undefined */
+    }
+  }
+  return {
+    id: row.id,
+    date: row.date,
+    analyzed_at: row.analyzed_at,
+    risk_level: row.risk_level,
+    key_insight: row.key_insight,
+    patterns: parseJsonArraySafe(row.patterns),
+    recommendations: parseJsonArraySafe(row.recommendations),
+    payload,
+    manifest_version: row.manifest_version
+  }
+}
+
+/** 导出完整 JSON 备份：记录 + AI 分析 */
+export function exportJsonBackup(): JsonBackupExport {
+  const store = loadStore()
+  return {
+    format: 'emotion-diary-backup',
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    entries: [...store.entries].sort((a, b) => b.occurred_at.localeCompare(a.occurred_at)),
+    ai_insights: [...store.ai_insights]
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .map(serializeInsightForExport)
+  }
+}
+
 export function listAllEntries(): EntryRow[] {
   return exportAllEntries()
 }
@@ -286,3 +387,112 @@ export function setDailyTitle(dateStr: string, title: string): void {
 export function getDbPath(): string {
   return storePath
 }
+
+function toJsonString(value: string[] | string): string {
+  return typeof value === 'string' ? value : JSON.stringify(value)
+}
+
+function parseJsonArraySafe(raw: string): string[] {
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    return Array.isArray(parsed) ? parsed.map(String) : []
+  } catch {
+    return []
+  }
+}
+
+/** 列出全部 AI 洞察（按日期倒序） */
+export function getAiInsights(): AiInsightRow[] {
+  return [...loadStore().ai_insights].sort((a, b) => b.date.localeCompare(a.date))
+}
+
+/** 最近 withinDays 天内最新一条洞察（供记录页提醒） */
+export function getLatestAiInsight(withinDays = 3): AiInsightRow | null {
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - withinDays)
+  const cutoffStr = cutoff.toISOString().slice(0, 10)
+  const rows = getAiInsights().filter((r) => r.date >= cutoffStr)
+  return rows[0] ?? null
+}
+
+function parsePayloadObject(raw: string | Record<string, unknown> | undefined): Record<string, unknown> {
+  if (!raw) return {}
+  if (typeof raw === 'object') return { ...raw }
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {}
+  } catch {
+    return {}
+  }
+}
+
+/** 写入或按 date 覆盖 / 合并 AI 洞察 */
+export function saveAiInsight(input: AiInsightInput): AiInsightRow | null {
+  const store = loadStore()
+  const existing = store.ai_insights.find((r) => r.date === input.date)
+
+  const keyInsight = input.key_insight.trim() || existing?.key_insight || ''
+  if (!keyInsight) return null
+
+  let payloadObj = parsePayloadObject(existing?.payload)
+  const incomingPayload = parsePayloadObject(input.payload)
+  payloadObj = input.merge
+    ? { ...payloadObj, ...incomingPayload }
+    : Object.keys(incomingPayload).length > 0
+      ? { ...payloadObj, ...incomingPayload }
+      : payloadObj
+
+  let patternsArr = existing ? parseJsonArraySafe(existing.patterns) : []
+  if (Array.isArray(input.patterns) && (!input.merge || input.patterns.length > 0)) {
+    patternsArr = input.patterns.map(String)
+  } else if (Array.isArray(incomingPayload.patterns)) {
+    patternsArr = incomingPayload.patterns.map(String)
+  }
+
+  let recommendationsArr = existing ? parseJsonArraySafe(existing.recommendations) : []
+  if (Array.isArray(input.recommendations) && (!input.merge || input.recommendations.length > 0)) {
+    recommendationsArr = input.recommendations.map(String)
+  } else if (Array.isArray(incomingPayload.recommendations)) {
+    recommendationsArr = incomingPayload.recommendations.map(String)
+  }
+
+  payloadObj.patterns = patternsArr
+  payloadObj.recommendations = recommendationsArr
+
+  const patterns = JSON.stringify(patternsArr)
+  const recommendations = JSON.stringify(recommendationsArr)
+  const payload = JSON.stringify(payloadObj)
+  const manifestVersion = input.manifest_version ?? existing?.manifest_version ?? 1
+
+  if (existing) {
+    if (input.analyzed_at) existing.analyzed_at = input.analyzed_at
+    if (input.risk_level) existing.risk_level = input.risk_level
+    existing.key_insight = keyInsight
+    existing.patterns = patterns
+    existing.recommendations = recommendations
+    existing.payload = payload
+    existing.manifest_version = manifestVersion
+    saveStore(store)
+    return existing
+  }
+
+  const id = ++store.counters.ai_insight
+  const row: AiInsightRow = {
+    id,
+    date: input.date,
+    analyzed_at: input.analyzed_at || new Date().toISOString(),
+    risk_level: input.risk_level,
+    key_insight: keyInsight,
+    patterns,
+    recommendations,
+    payload,
+    manifest_version: manifestVersion
+  }
+  store.ai_insights.push(row)
+  saveStore(store)
+  return row
+}
+
+export { parseJsonArraySafe }

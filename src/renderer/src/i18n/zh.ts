@@ -74,6 +74,27 @@ export const ZH = {
   energyTierLabel: (tier: number, label: string) => `\u8d1f\u8377\u6863\u4f4d ${tier}\uff1a${label}`,
   emotionCoreHint: '\u9009\u4e00\u4e2a\u6700\u8d34\u8fd1\u6b64\u523b\u7684\u72b6\u6001',
   factSceneHintShort: '\u70b9\u9009\u6765\u6e90',
+  diaryTitle: '\u4eca\u5929\u2026',
+  diaryHintShort: '\u968f\u624b\u5199\u51e0\u53e5\u5c31\u597d',
+  diaryPlaceholder: '\u4eca\u5929\u53d1\u751f\u4e86\u4ec0\u4e48\uff1f\u968f\u4fbf\u5199\u51e0\u53e5\u5c31\u597d',
+  /** 日记日期头：6月2日 */
+  diaryDateDay: (dateLabel: string) => {
+    const parts = dateLabel.split('/')
+    if (parts.length < 3) return dateLabel || '\u4eca\u5929'
+    const m = Number(parts[1])
+    const d = Number(parts[2])
+    if (!Number.isFinite(m) || !Number.isFinite(d)) return dateLabel
+    return `${m}\u6708${d}\u65e5`
+  },
+  /** 日记日期头：周一 */
+  diaryDateWeekday: (dateLabel: string) => {
+    const parts = dateLabel.split('/').map(Number)
+    if (parts.length < 3 || !parts.every(Number.isFinite)) return ''
+    const date = new Date(parts[0], parts[1] - 1, parts[2])
+    const weekdays = ['\u5468\u65e5', '\u5468\u4e00', '\u5468\u4e8c', '\u5468\u4e09', '\u5468\u56db', '\u5468\u4e94', '\u5468\u516d']
+    return weekdays[date.getDay()]
+  },
+  coordSectionLabel: '\u6b64\u523b\u7684\u72b6\u6001',
   thoughtHintShort: '\u9009\u4e00\u4e2a\u8d34\u8fd1\u7684\u60f3\u6cd5',
   saveRecordEnter: '\u4fdd\u5b58\u8bb0\u5f55 (Enter)',
   saveRecordCtrlEnter: '\u4fdd\u5b58\u8bb0\u5f55 (Ctrl+Enter)',
@@ -127,9 +148,9 @@ export const ZH = {
   dailyReminder: '\u63d0\u9192\u8bbe\u7f6e',
   dailyReminderDesc:
     '\u6309\u8bbe\u5b9a\u95f4\u9694\u5f39\u7a97\u63d0\u9192\uff1b\u4fdd\u5b58\u8bb0\u5f55\u540e\u4ecd\u4f1a\u7ee7\u7eed\u63d0\u9192\u3002Esc \u5173\u95ed\u5f39\u7a97\u4f1a\u9759\u9ed8\u5199\u5165\u4e00\u6761\u300c\u9003\u907f\u8bb0\u5f55\u300d\u3002\u9759\u9ed8\u65f6\u6bb5\u5185\u4e0d\u63d0\u9192\u3002',
-  reminderInterval: '\u63d0\u9192\u95f4\u9694\uff08\u5c0f\u65f6\uff09',
+  reminderInterval: '\u63d0\u9192\u95f4\u9694\uff08\u5206\u949f\uff09',
   reminderIntervalHint:
-    '\u4f8b\u5982\u586b 2\uff1a\u6bcf 2 \u5c0f\u65f6\u4e00\u6b21\uff1b\u6700\u5c0f\u53ef\u586b 0.01\uff08\u7ea6 36 \u79d2\uff09\u3002\u9759\u9ed8\u65f6\u6bb5\u4e0d\u63d0\u9192\u3002',
+    '\u4f8b\u5982\u586b 60\uff1a\u6bcf 60 \u5206\u949f\u4e00\u6b21\uff1b\u53ef\u586b 1\u20131440\uff08\u6700\u957f 24 \u5c0f\u65f6\uff09\u3002\u9759\u9ed8\u65f6\u6bb5\u4e0d\u63d0\u9192\u3002',
   quietPeriod: '\u9759\u9ed8\u65f6\u6bb5\uff08\u6b64\u65f6\u6bb5\u4e0d\u5f39\u7a97\uff09',
   quietStart: '\u5f00\u59cb',
   quietEnd: '\u7ed3\u675f',
@@ -176,6 +197,8 @@ export const ZH = {
   updateOpenReleases: '\u6253\u5f00 GitHub Releases',
   dataFile: '\u6570\u636e\u6587\u4ef6\uff1a',
   exportJson: '\u5bfc\u51fa JSON \u5907\u4efd',
+  exportJsonHint:
+    '\u5305\u542b\u5168\u90e8\u8bb0\u5f55\u4e0e AI \u6d1e\u5bdf\u5206\u6790\uff08ai_insights\uff09\uff0c\u53ef\u7528\u4e8e\u79bb\u7ebf\u4fdd\u7559\u6216\u8fc1\u79fb\u3002',
   disclaimer:
     '\u672c\u5e94\u7528\u4ec5\u4f9b\u4e2a\u4eba\u72b6\u6001\u89c9\u5bdf\u4e0e\u771f\u6211\u63a2\u7d22\uff0c\u4e0d\u80fd\u66ff\u4ee3\u4e13\u4e1a\u5fc3\u7406\u54a8\u8be2\u6216\u533b\u7597\u8bca\u65ad\u3002',
 
@@ -219,6 +242,8 @@ export const ZH = {
   historyAvoidanceBadge: '\u81ea\u52a8\u5199\u5165',
   historyContextAt: (scene: string) => `\u5728 ${scene}`,
   historyThoughtFlash: '\u5185\u5728\u5267\u672c\uff1a',
+  historyDiaryEmpty: '\uff08\u65e0\u6587\u5b57\u8bb0\u5f55\uff09',
+  historyLegacyThought: '\u9644\uff1a',
   historyBodySummary: (body: string) => `${'\u8eab\u5fc3\u53cd\u5e94\uff1a'}${body}`,
   tabAnalysis: '\u5206\u6790',
   tabSettings: '\u8bbe\u7f6e',
@@ -274,6 +299,8 @@ export const ZH = {
   toastSaved: '\u5df2\u8bb0\u5f55\uff0c\u6b64\u523b\u7684\u72b6\u6001\u88ab\u7559\u4e0b\u6765\u4e86',
 
   tagListsTitle: '\u8bb0\u5f55\u6807\u7b7e\u7ba1\u7406',
+  tagListsDiaryHint:
+    '\u8bb0\u5f55\u5df2\u6539\u4e3a\u81ea\u7531\u65e5\u8bb0\u6587\u672c\uff0c\u4e0d\u518d\u4f7f\u7528\u573a\u666f\u6807\u7b7e\u4e0e\u5185\u5728\u5267\u672c\u6807\u7b7e\u3002',
   tagListsDesc:
     '\u7f16\u8f91\u4ee5\u4e0b\u6807\u7b7e\u540e\u70b9\u300c\u4fdd\u5b58\u8bbe\u7f6e\u300d\uff0c\u8bb0\u5f55\u9875\u4f1a\u540c\u6b65\u66f4\u65b0\u3002',
   tagAdd: '\u6dfb\u52a0',
@@ -334,5 +361,46 @@ export const ZH = {
 
   // 设置页新增
   fatigueCheckHourLabel: '\u75b2\u52b3\u68c0\u67e5\u89e6\u53d1\u65f6\u95f4\uff08\u6574\u70b9\uff09',
-  fatigueCheckHourHint: '\u9ed8\u8ba4 18\uff1a00\uff0c\u8f93\u5165 0\u201323\u3002'
+  fatigueCheckHourHint: '\u9ed8\u8ba4 18\uff1a00\uff0c\u8f93\u5165 0\u201323\u3002',
+
+  // AI 洞察
+  tabInsight: 'AI \u6d1e\u5bdf',
+  insightPageTitle: 'AI \u6d1e\u5bdf',
+  insightPageDesc:
+    '\u6bcf\u665a 22:00 \u81ea\u52a8\u5bfc\u51fa\u5f53\u65e5\u8bb0\u5f55\uff1b\u5728 Claude Code \u4e2d\u8fd0\u884c /analyze-records \u540e\uff0c\u7ed3\u679c\u4f1a\u81ea\u52a8\u540c\u6b65\u5230\u6b64\u5904\u3002',
+  insightNoData: '\u6682\u65e0 AI \u5206\u6790\u7ed3\u679c',
+  insightNoDataHint:
+    '\u5148\u5728\u300c\u624b\u52a8\u5bfc\u51fa\u4eca\u65e5\u300d\u751f\u6210\u6587\u4ef6\uff0c\u518d\u5728 Claude Code \u9879\u76ee\u76ee\u5f55\u8fd0\u884c /analyze-records',
+  insightRiskLevel: (level: 'low' | 'medium' | 'high') =>
+    level === 'high' ? '\u9ad8\u98ce\u9669' : level === 'medium' ? '\u4e2d\u98ce\u9669' : '\u4f4e\u98ce\u9669',
+  insightPatternsTitle: '\u8bc6\u522b\u6a21\u5f0f',
+  insightRecommendationsTitle: '\u884c\u52a8\u5efa\u8bae',
+  insightAnalyzedAt: (t: string) => `\u5206\u6790\u65f6\u95f4\uff1a${t}`,
+  insightExportToday: '\u624b\u52a8\u5bfc\u51fa\u4eca\u65e5',
+  insightExportDone: (count: number, path: string) =>
+    `\u5df2\u5bfc\u51fa ${count} \u6761\u8bb0\u5f55\u2192 ${path}`,
+  insightExportFail: '\u5bfc\u51fa\u5931\u8d25\uff0c\u8bf7\u91cd\u8bd5',
+  insightBannerTitle: (date: string) => `AI \u6d1e\u5bdf \u00b7 ${date}`,
+  insightViewDetail: '\u67e5\u770b\u8be6\u60c5',
+  insightExpand: '\u5c55\u5f00\u8be6\u60c5 \u25bc',
+  insightCollapse: '\u6536\u8d77 \u25b2',
+  insightViewEntry: '\u67e5\u770b\u8bb0\u5f55 \u2192',
+  insightEntryCount: (n: number) => `\u5171 ${n} \u6761`,
+  insightHelpTitle: 'AI \u4f7f\u7528\u4e0e\u4fee\u6539\u8bf4\u660e',
+  insightHelpUsageTitle: '\u65e5\u5e38\u4f7f\u7528',
+  insightHelpUsageSteps: [
+    '\u767d\u5929\u5728\u300c\u8bb0\u5f55\u300d\u9875\u5199\u65e5\u8bb0\u5e76\u4fdd\u5b58',
+    '\u6253\u5f00\u300cAI \u6d1e\u5bdf\u300d\u2192 \u70b9\u300c\u624b\u52a8\u5bfc\u51fa\u4eca\u65e5\u300d\uff08\u6216\u7b49\u5f85\u6bcf\u665a 22:00 \u81ea\u52a8\u5bfc\u51fa\uff09',
+    '\u5728\u672c\u9879\u76ee\u76ee\u5f55\u7528 Claude Code \u8fd0\u884c /analyze-records',
+    '\u56de\u5230 App \u300cAI \u6d1e\u5bdf\u300d\u9875\u67e5\u770b\uff1b\u70b9\u300c\u5c55\u5f00\u8be6\u60c5\u300d\u53ef\u770b\u5b8c\u6574\u5206\u6790',
+    '\u53ef\u9009\uff1a/detect-patterns \u8de8\u65e5\u6a21\u5f0f\u3001/risk-alert \u98ce\u9669\u9884\u8b66'
+  ],
+  insightHelpModifyTitle: '\u5982\u4f55\u4fee\u6539 AI \u8f93\u51fa',
+  insightHelpModifySteps: [
+    '\u7f16\u8f91 src/shared/aiInsightManifest.ts \u7684 AI_INSIGHT_FIELDS\uff08\u589e\u5b57\u6bb5\u3001\u6539\u6807\u9898\u3001\u9009 renderType\uff09',
+    '\u540c\u6b65 .claude/commands/analyze-records.md \u91cc\u7684 JSON \u793a\u4f8b',
+    'App \u4f1a\u6309 manifest \u81ea\u52a8\u5c55\u793a\u65b0\u5b57\u6bb5\uff1b\u5b8c\u6574\u6587\u6863\u89c1\u9879\u76ee docs/AI\u4f7f\u7528\u4e0e\u4fee\u6539\u8bf4\u660e.md'
+  ],
+  insightHelpDataPath:
+    '\u6570\u636e\u76ee\u5f55\uff1a%APPDATA%\\emotion-diary\\data\\ \uff08ai-export \u5bfc\u51fa\u3001ai-results \u5206\u6790\u7ed3\u679c\uff09'
 } as const

@@ -9,7 +9,7 @@ import { createEntry, getSetting, setSetting } from './database'
 import {
   isQuietHours,
   loadSettings,
-  MIN_REMINDER_INTERVAL_HOURS,
+  clampReminderIntervalMinutes,
   type AppSettings
 } from './settings'
 
@@ -26,15 +26,9 @@ let fatigueCheckFiredDate = ''
 
 const SNOOZE_INTERVAL_MS = 20 * 60 * 1000
 
-function clampReminderHours(hours: number): number {
-  if (!Number.isFinite(hours) || hours < MIN_REMINDER_INTERVAL_HOURS) {
-    return MIN_REMINDER_INTERVAL_HOURS
-  }
-  return Math.min(24, hours)
-}
-
 function reminderIntervalMs(settings: AppSettings): number {
-  return clampReminderHours(settings.reminderIntervalHours) * 60 * 60 * 1000
+  const minutes = clampReminderIntervalMinutes(settings.reminderIntervalMinutes)
+  return minutes * 60 * 1000
 }
 
 function todayKey(): string {

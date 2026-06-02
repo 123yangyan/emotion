@@ -1,7 +1,7 @@
 import type { EntryRow } from '../../../main/database'
 import type { TagListsConfig } from '../../../shared/types'
 import { isAvoidanceEntry } from './avoidanceEntry'
-import { parseEntries, parseFactField, getQuadrantLabel, type ParsedEntry } from './entryParse'
+import { parseEntries, parseFactField, getQuadrantLabel, getDiaryDisplayText, type ParsedEntry } from './entryParse'
 import { assignQuadrant, type QuadrantId } from './dayAnalytics'
 
 export type PanoramaRange = 'day' | 'week' | 'month'
@@ -23,6 +23,8 @@ export interface PanoramaPoint {
   quadrantColor: string
   factTags: string[]
   factSupplement: string
+  /** 日记正文（展示与统计用） */
+  diaryText: string
   thoughtParts: string[]
   thoughtRaw: string
   bodyParts: string[]
@@ -119,7 +121,7 @@ function topCounts(map: FreqAcc, limit: number): FrequencyItem[] {
     .map(([label, { count, entryIds }]) => ({ label, count, entryIds }))
 }
 
-/** 按象限 ID 统计外部触发器（factTags）出现频次 */
+/** 按象限 ID 统计日记正文出现频次（相同文本合并计数） */
 function computeQuadrantFactFrequencies(
   points: PanoramaPoint[],
   targetId: QuadrantId
@@ -127,14 +129,8 @@ function computeQuadrantFactFrequencies(
   const acc: FreqAcc = new Map()
   for (const p of points) {
     if (p.quadrantId !== targetId) continue
-    if (p.factTags.length === 0) {
-      const note = p.factSupplement.trim()
-      if (note) bumpFreq(acc, note, p.id)
-      continue
-    }
-    for (const tag of p.factTags) {
-      bumpFreq(acc, tag, p.id)
-    }
+    const text = p.diaryText.trim()
+    if (text) bumpFreq(acc, text.length > 40 ? `${text.slice(0, 40)}…` : text, p.id)
   }
   return topCounts(acc, 3)
 }
@@ -179,6 +175,7 @@ function pointFromParsed(
     quadrantColor: quadrantColor(quadrantId),
     factTags: tags,
     factSupplement: supplement,
+    diaryText: getDiaryDisplayText(row),
     thoughtParts: parseThoughtField(row.thought),
     thoughtRaw: row.thought?.trim() ?? '',
     bodyParts,
@@ -229,16 +226,14 @@ export function extractDrainPoints(points: PanoramaPoint[]): PanoramaPoint[] {
   return points.filter((p) => p.quadrantId === 'tl')
 }
 
-/** 高频 factTags 统计（按出现次数降序，取前 N 条） */
+/** 高频日记摘要统计（按出现次数降序，取前 N 条） */
 export function topFactTags(points: PanoramaPoint[], limit = 3): FrequencyItem[] {
   const acc: FreqAcc = new Map()
   for (const p of points) {
-    for (const tag of p.factTags) {
-      bumpFreq(acc, tag, p.id)
-    }
-    if (p.factTags.length === 0 && p.factSupplement.trim()) {
-      bumpFreq(acc, p.factSupplement.trim(), p.id)
-    }
+    const text = p.diaryText.trim()
+    if (!text) continue
+    const label = text.length > 40 ? `${text.slice(0, 40)}…` : text
+    bumpFreq(acc, label, p.id)
   }
   return topCounts(acc, limit)
 }

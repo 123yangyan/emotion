@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "date": "2026-06-02",
+  "analyzed_at": "2026-06-02T22:05:12.000Z",
+  "entry_count": 5,
+  "risk_level": "medium",
+  "key_insight": "今日3次落入内耗陷阱，日记里反复出现「每次都这样」等过度概括表达",
+  "summary": "今天共记录5条。下午14-18点耗能偏高，3条落在内耗陷阱，日记中多次出现绝对化表达。心流区记录集中在上午。建议关注下午时段的决策负荷。",
+  "quadrant_stats": {
+    "攻坚区": 0,
+    "心流区": 2,
+    "机械区": 0,
+    "内耗陷阱": 3
+  },
+  "cognitive_distortions": [
+    { "type": "过度概括", "quote": "每次都这样", "entry_id": 42 }
+  ],
+  "patterns": ["下午高耗能集中", "过度概括思维"],
+  "risk_signals": ["3条内耗陷阱", "绝对化用语出现2次"],
+  "recommendations": ["下午3点设休息提醒", "注意「每次」「总是」等用词"],
+  "related_entries": [
+    {
+      "entry_id": 42,
+      "occurred_at": "2026-06-02T14:30:00",
+      "note": "内耗陷阱 · 收到批评邮件"
+    }
+  ]
+}
