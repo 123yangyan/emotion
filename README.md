@@ -1,4 +1,4 @@
-# 情绪记录（Windows）v3.5.0
+# 情绪记录（Windows）v3.6.0
 
 本地离线情绪日记桌面应用：**Electron + React + TypeScript**，数据存于用户目录下的 **JSON 文件**（无 SQLite / 无原生编译依赖）。
 
@@ -33,7 +33,7 @@
 
 App 支持配合 **Claude Code** 做本地 AI 分析（数据不上云）：
 
-1. 在 App 记录日记 → **AI 洞察** 页「手动导出今日」（或等待 **22:00** 自动导出）
+1. 在 App 记录日记并保存（自动写入 `ai-export`）
 2. 在项目目录用 Claude Code 运行 `/analyze-records`
 3. 回到 App **AI 洞察** 页查看结果（可展开详情、跳转关联日记）
 
@@ -78,8 +78,8 @@ npm run seed:ai-insight   # 写入 AI 洞察测试数据（可选）
 ## 维护者发布
 
 ```bash
-git tag v3.5.0
-git push origin v3.5.0
+git tag v3.6.0
+git push origin v3.6.0
 ```
 
 推送 `v*` 标签后，`.github/workflows/release.yml` 在 Windows 上执行 `npm run dist` 并上传 `release/` 安装包。
@@ -194,7 +194,7 @@ src/
 │   └── aiInsightIngest.ts    # ai-results 解析入库
 ├── main/
 │   ├── database.ts           # JSON 存储、CRUD、exportJsonBackup
-│   ├── ai-export-service.ts  # 22:00 导出、监听 ai-results
+│   ├── ai-export-service.ts  # 保存后自动导出、监听 ai-results
 │   ├── daily-checkin-service.ts
 │   ├── settings.ts
 │   ├── update-service.ts     # GitHub API 检查版本
@@ -248,7 +248,6 @@ src/
 | `getSettings` / `saveSettings` | 设置（分钟间隔等） |
 | `exportJson` | 备份 entries + ai_insights |
 | `getAiInsights` / `getLatestAiInsight` | AI 洞察 |
-| `triggerAiExport` | 手动导出 ai-export |
 | `checkForUpdate` | GitHub 版本检查 |
 | `openCheckInPopup` / `snoozeCheckIn` | 提醒弹窗 |
 
@@ -265,7 +264,7 @@ src/
 
 ---
 
-## 功能清单（v3.5.0）
+## 功能清单（v3.6.0）
 
 - **记录**：四象限坐标 + 日记正文；Enter 保存
 - **历史**：日记风格列表、编辑、批量删除

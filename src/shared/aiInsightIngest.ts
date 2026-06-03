@@ -1,3 +1,4 @@
+import { nowBeijingIso } from './beijingTime'
 import {
   AI_INSIGHT_MANIFEST_VERSION,
   isCoreKey,
@@ -18,7 +19,7 @@ export function splitAiResult(raw: Record<string, unknown>): {
   const core: Record<AiInsightCoreKey, string | AiRiskLevel> = {
     date: typeof raw.date === 'string' ? raw.date : '',
     analyzed_at:
-      typeof raw.analyzed_at === 'string' ? raw.analyzed_at : new Date().toISOString(),
+      typeof raw.analyzed_at === 'string' ? raw.analyzed_at : nowBeijingIso(),
     risk_level: normalizeRiskLevel(raw.risk_level),
     key_insight: typeof raw.key_insight === 'string' ? raw.key_insight : ''
   }

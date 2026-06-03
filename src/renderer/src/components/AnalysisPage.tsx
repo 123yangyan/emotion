@@ -14,8 +14,7 @@ import {
 import FrequencyPanel from './panorama/FrequencyPanel'
 import PanoramaTimeline from './panorama/PanoramaTimeline'
 import SnapshotCard from './panorama/SnapshotCard'
-import EnergyAuditView from './panorama/EnergyAuditView'
-import FatiguePanel from './panorama/FatiguePanel'
+import { useEntriesRefresh } from '../hooks/useDataRefresh'
 
 const RANGES: { id: PanoramaRange; label: string }[] = [
   { id: 'day', label: ZH.panoramaRangeDay },
@@ -59,7 +58,7 @@ export default function AnalysisPage({ onEditEntry }: Props): JSX.Element {
     setLoading(false)
   }, [range])
 
-  useEffect(() => {
+  useEntriesRefresh(() => {
     void load()
   }, [load])
 
@@ -182,25 +181,7 @@ export default function AnalysisPage({ onEditEntry }: Props): JSX.Element {
               {r.label}
             </button>
           ))}
-          {/* 能量审计：仅周视图显示 */}
-          {range === 'week' && !loading && points.length > 0 && (
-            <button
-              type="button"
-              role="tab"
-              className="panorama-range-tab"
-              style={{ marginLeft: 12, borderColor: 'var(--accent)' }}
-              onClick={() => {
-                /* 滚动到能量审计区域 */
-                document.getElementById('energy-audit-section')?.scrollIntoView({ behavior: 'smooth' })
-              }}
-            >
-              {ZH.energyAuditTab}
-            </button>
-          )}
         </div>
-        <button type="button" className="btn secondary" onClick={() => void load()}>
-          {ZH.refresh}
-        </button>
       </header>
 
       {loading ? (
@@ -247,24 +228,6 @@ export default function AnalysisPage({ onEditEntry }: Props): JSX.Element {
               onItemClick={handleFreqItemClick}
             />
           </div>
-
-          {/* 能量审计区域（周视图显示） */}
-          {range === 'week' && (
-            <section id="energy-audit-section" className="panorama-section" style={{ marginTop: 28 }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 14 }}>
-                {ZH.energyAuditTab}
-              </h3>
-              <EnergyAuditView points={points} />
-            </section>
-          )}
-
-          {/* 疲劳检查可视化面板（当期有疲劳数据时显示） */}
-          <section className="panorama-section" style={{ marginTop: 28 }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 14 }}>
-              📊 疲劳检查数据
-            </h3>
-            <FatiguePanel entries={entries} />
-          </section>
         </>
       )}
     </div>

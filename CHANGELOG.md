@@ -1,5 +1,20 @@
 # 更新日志
 
+## v3.6.0（2026-06-03）
+
+### AI 分析
+
+- 增强 `/analyze-records`：优先读取 `reaction_note`，补充 8 项可执行分析规则与风险计分
+- manifest 新增 `data_quality`、`thought_themes`、`entry_summaries`、`writing_feedback`
+- 安装包通过 `extraResources` 附带 `resources/ai-kit`（`.claude` 命令、Cursor Skill、使用说明）
+
+### 应用与打包
+
+- 北京时间统一、主进程通知与相关 UI/分析逻辑优化
+- 文档补充：安装版 AI 套件路径说明
+
+---
+
 ## v3.5.0（2026-06-02）
 
 ### 记录与历史

@@ -25,7 +25,6 @@ const api = {
   exportJson: (): Promise<{ ok: boolean; path?: string }> => ipcRenderer.invoke('export:json'),
   getDataPath: (): Promise<{ dbPath: string; userData: string }> => ipcRenderer.invoke('app:getDataPath'),
   openCheckInPopup: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('checkin:open'),
-  openFatigueCheckPopup: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('checkin:openFatigue'),
   scheduleTestReminder: (
     delaySeconds: number
   ): Promise<{ ok: boolean; delaySeconds: number; fireAt: string }> =>
@@ -49,10 +48,24 @@ const api = {
   getAiInsights: (): Promise<AiInsightRow[]> => ipcRenderer.invoke('ai:getInsights'),
   getLatestAiInsight: (withinDays?: number): Promise<AiInsightRow | null> =>
     ipcRenderer.invoke('ai:getLatestInsight', withinDays),
-  triggerAiExport: (
-    dateStr?: string
-  ): Promise<{ ok: true; path: string; count: number }> =>
-    ipcRenderer.invoke('ai:triggerExport', dateStr),
+  onEntriesChanged: (callback: () => void): (() => void) => {
+    const handler = (): void => {
+      callback()
+    }
+    ipcRenderer.on('data:entriesChanged', handler)
+    return () => {
+      ipcRenderer.removeListener('data:entriesChanged', handler)
+    }
+  },
+  onAiInsightsChanged: (callback: () => void): (() => void) => {
+    const handler = (): void => {
+      callback()
+    }
+    ipcRenderer.on('data:aiInsightsChanged', handler)
+    return () => {
+      ipcRenderer.removeListener('data:aiInsightsChanged', handler)
+    }
+  },
   onUpdateProgress: (callback: (percent: number) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, payload: { percent: number }): void => {
       callback(payload.percent)

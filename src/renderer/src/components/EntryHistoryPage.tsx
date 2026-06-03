@@ -11,6 +11,7 @@ import {
 } from '../utils/historyRowPreview'
 import CoordMiniBadge from './CoordMiniBadge'
 import MoodRecordForm from './MoodRecordForm'
+import { useEntriesRefresh } from '../hooks/useDataRefresh'
 
 interface Props {
   onToast: (msg: string) => void
@@ -51,7 +52,7 @@ export default function EntryHistoryPage({
     setLoading(false)
   }, [])
 
-  useEffect(() => {
+  useEntriesRefresh(() => {
     void load()
   }, [load, tagListsVersion])
 
@@ -248,9 +249,6 @@ export default function EntryHistoryPage({
         <div>
           <h2>{ZH.historyTitle}</h2>
         </div>
-        <button type="button" className="btn secondary" onClick={() => void load()}>
-          {ZH.refresh}
-        </button>
       </header>
 
       {loading ? (

@@ -8,6 +8,7 @@ import {
   getDiaryDisplayText,
   splitThoughtField
 } from './entryParse'
+import { beijingDateKey, formatBeijingHm } from '../../../shared/beijingTime'
 import { assignQuadrant } from './dayAnalytics'
 
 function parseFatigueSummary(raw: string | null | undefined): { hasFatigue: boolean; fatigueLabel: string } {
@@ -62,9 +63,8 @@ export function buildHistoryRowView(
   thoughtTagOptions: string[]
 ): HistoryRowView {
   const parsed = parseEntryRow(row)
-  const d = new Date(row.occurred_at)
-  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-  const dateKey = row.occurred_at.slice(0, 10)
+  const time = formatBeijingHm(row.occurred_at)
+  const dateKey = beijingDateKey(row.occurred_at)
 
   const quadrantLabel = getQuadrantLabel(parsed.coordX, parsed.coordY)
   const intensity = Math.max(1, Math.min(9, Math.round(parsed.coordY + 5)))

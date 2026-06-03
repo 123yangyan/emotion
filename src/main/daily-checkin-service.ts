@@ -5,6 +5,9 @@ import {
   AVOIDANCE_FACT,
   AVOIDANCE_THOUGHT
 } from '../shared/checkin'
+import { nowBeijingIso, todayBeijingDateKey } from '../shared/beijingTime'
+import { autoExportForOccurredAt } from './ai-export-service'
+import { notifyEntriesChanged } from './renderer-notify'
 import { createEntry, getSetting, setSetting } from './database'
 import {
   isQuietHours,
@@ -20,7 +23,10 @@ let testReminderTimer: ReturnType<typeof setTimeout> | null = null
 let testReminderFireAt = 0
 let testReminderDelaySeconds = 0
 
-/** 疲劳检查定时器（每天 fatigueCheckHour 触发一次） */
+/** 疲劳检查每天固定在此整点触发（北京时间，不可在设置中修改） */
+const FATIGUE_CHECK_HOUR = 18
+
+/** 疲劳检查定时器（每天 18:00 触发一次） */
 let fatigueCheckTimer: ReturnType<typeof setTimeout> | null = null
 let fatigueCheckFiredDate = ''
 
@@ -32,7 +38,7 @@ function reminderIntervalMs(settings: AppSettings): number {
 }
 
 function todayKey(): string {
-  return new Date().toISOString().slice(0, 10)
+  return todayBeijingDateKey()
 }
 
 function getSnoozeCount(date: string): number {
@@ -177,7 +183,7 @@ export function openCheckInWindow(): void {
 
 /** 用户 Esc / 关闭：静默写入逃避记录，按间隔继续提醒（不再当日静默） */
 export function recordCheckInSnooze(): void {
-  createEntry({
+  const entry = createEntry({
     fact: AVOIDANCE_FACT,
     thought: AVOIDANCE_THOUGHT,
     bodyTags: [],
@@ -186,8 +192,10 @@ export function recordCheckInSnooze(): void {
     coordX: 0,
     coordY: 0,
     fatigueCheck: null,
-    occurredAt: new Date().toISOString()
+    occurredAt: nowBeijingIso()
   })
+  autoExportForOccurredAt(entry.occurred_at)
+  notifyEntriesChanged()
 
   const date = todayKey()
   setSetting(`checkinSnoozeCount_${date}`, String(getSnoozeCount(date) + 1))
@@ -345,7 +353,7 @@ export function openFatigueCheckWindow(): void {
 
 /**
  * 调度疲劳检查定时器。
- * 每次调用时根据当前时间计算距离今天 fatigueCheckHour 点的毫秒数并设置 setTimeout。
+ * 每次调用时根据当前时间计算距离今天 18:00 的毫秒数并设置 setTimeout。
  * 若今天该时间点已过，则调度到明天同一时间。
  * 若与常规提醒冲突（±30分钟内），该次常规提醒让位给疲劳检查。
  */
@@ -355,11 +363,9 @@ export function scheduleFatigueCheck(): void {
     fatigueCheckTimer = null
   }
 
-  const settings = loadSettings()
-  const hour = settings.fatigueCheckHour ?? 18
   const now = new Date()
   const target = new Date(now)
-  target.setHours(hour, 0, 0, 0)
+  target.setHours(FATIGUE_CHECK_HOUR, 0, 0, 0)
 
   if (target.getTime() <= now.getTime()) {
     target.setDate(target.getDate() + 1)
@@ -369,7 +375,7 @@ export function scheduleFatigueCheck(): void {
 
   fatigueCheckTimer = setTimeout(() => {
     fatigueCheckTimer = null
-    const todayStr = new Date().toISOString().slice(0, 10)
+    const todayStr = todayBeijingDateKey()
     if (fatigueCheckFiredDate === todayStr) {
       scheduleFatigueCheck()
       return

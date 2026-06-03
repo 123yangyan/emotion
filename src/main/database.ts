@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import { join } from 'path'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { beijingDateKey, nowBeijingIso, todayBeijingDateKey } from '../shared/beijingTime'
 
 export interface EntryRow {
   id: number
@@ -129,7 +130,7 @@ function saveStore(store: Store): void {
 }
 
 function dateOnly(iso: string): string {
-  return iso.slice(0, 10)
+  return beijingDateKey(iso)
 }
 
 export function initDatabase(): void {
@@ -144,7 +145,7 @@ export function initDatabase(): void {
 export function createEntry(input: EntryInput): EntryRow {
   const store = loadStore()
   const id = ++store.counters.entry
-  const now = new Date().toISOString()
+  const now = nowBeijingIso()
   const row: EntryRow = {
     id,
     fact: input.fact,
@@ -178,14 +179,19 @@ export function listEntriesByDate(dateStr: string): EntryRow[] {
 
 /** 按时间范围列出记录（含起止日，ISO 字符串比较） */
 export function listEntriesBetween(startIso: string, endIso: string): EntryRow[] {
+  const startMs = new Date(startIso).getTime()
+  const endMs = new Date(endIso).getTime()
   return loadStore()
-    .entries.filter((e) => e.occurred_at >= startIso && e.occurred_at <= endIso)
+    .entries.filter((e) => {
+      const t = new Date(e.occurred_at).getTime()
+      return t >= startMs && t <= endMs
+    })
     .sort((a, b) => a.occurred_at.localeCompare(b.occurred_at))
 }
 
 /** 今天是否已有记录（每日弹窗：记过则今日不再提醒） */
 export function hasEntryToday(dateStr?: string): boolean {
-  const d = dateStr ?? new Date().toISOString().slice(0, 10)
+  const d = dateStr ?? todayBeijingDateKey()
   return loadStore().entries.some((e) => dateOnly(e.occurred_at) === d)
 }
 
@@ -410,7 +416,7 @@ export function getAiInsights(): AiInsightRow[] {
 export function getLatestAiInsight(withinDays = 3): AiInsightRow | null {
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - withinDays)
-  const cutoffStr = cutoff.toISOString().slice(0, 10)
+  const cutoffStr = beijingDateKey(cutoff)
   const rows = getAiInsights().filter((r) => r.date >= cutoffStr)
   return rows[0] ?? null
 }
@@ -482,7 +488,7 @@ export function saveAiInsight(input: AiInsightInput): AiInsightRow | null {
   const row: AiInsightRow = {
     id,
     date: input.date,
-    analyzed_at: input.analyzed_at || new Date().toISOString(),
+    analyzed_at: input.analyzed_at || nowBeijingIso(),
     risk_level: input.risk_level,
     key_insight: keyInsight,
     patterns,

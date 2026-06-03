@@ -23,19 +23,12 @@
 ## 二、日常使用流程（推荐）
 
 ```text
-记录日记 → 导出数据 → Claude Code 分析 → App 自动同步 → 查看洞察
+记录日记 → 自动写入 ai-export → Claude Code 分析 → App 自动同步 → 查看洞察
 ```
 
 ### 步骤 1：在 App 里记录
 
-白天在 **「记录」** 页正常写日记并保存（含任务坐标 + 日记正文）。
-
-### 步骤 2：导出当日数据
-
-任选其一：
-
-- **自动**：每晚 **22:00** App 会把当日记录导出到 `ai-export/{日期}.json`
-- **手动**：打开 **「AI 洞察」** 页 → 点击 **「手动导出今日」**
+在 **「记录」** 页写日记并保存（含任务坐标 + 日记正文）。保存、编辑或删除记录后，App 会**立即**把该日全部记录写入 `ai-export/{日期}.json`（按北京时间日期）。
 
 导出路径（Windows）：
 
@@ -43,7 +36,7 @@
 %APPDATA%\emotion-diary\data\ai-export\2026-06-02.json
 ```
 
-### 步骤 3：在 Claude Code 中运行分析
+### 步骤 2：在 Claude Code 中运行分析
 
 在项目目录打开 Claude Code，执行：
 
@@ -63,7 +56,7 @@ AI 会把结果写入：
 %APPDATA%\emotion-diary\data\ai-results\2026-06-02.json
 ```
 
-### 步骤 4：在 App 里查看
+### 步骤 3：在 App 里查看
 
 - 打开 **「AI 洞察」** 页（App 会通过文件监听自动入库，一般无需重启）
 - 卡片默认显示：日期、风险徽章、摘要、分析条数
@@ -178,6 +171,15 @@ AI 写入该字段后，洞察页展开区会**自动多一块「能量趋势」
 
 **Q：数据会上传云端吗？**  
 不会。导出、分析、入库均在本地 `%APPDATA%\emotion-diary\data\` 完成。
+
+**Q：`npm run dist` 打包的 exe 里找不到 `.claude`？**  
+安装包**不会**把源码根目录的 `.claude` 打进 `app.asar`（asar 里只有编译后的 `out/`）。AI 命令已单独复制到安装目录：
+
+```text
+{安装目录}\resources\ai-kit\.claude\commands\
+```
+
+在 Claude Code 中把 **`resources\ai-kit`** 当作工作区打开，再运行 `/analyze-records`。说明见安装包内 `resources\ai-kit\README.md`。
 
 ---
 

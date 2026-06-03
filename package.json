@@ -1,6 +1,6 @@
 {
   "name": "emotion-diary",
-  "version": "3.5.0",
+  "version": "3.6.0",
   "description": "Windows 情绪记录 · 本地离线 · 强提醒",
   "main": "./out/main/index.js",
   "author": "123yangyan",
@@ -75,6 +75,22 @@
       {
         "from": "resources/tray-icon@2x.png",
         "to": "tray-icon@2x.png"
+      },
+      {
+        "from": ".claude",
+        "to": "ai-kit/.claude"
+      },
+      {
+        "from": ".cursor/skills/emotion-diary-ai",
+        "to": "ai-kit/.cursor/skills/emotion-diary-ai"
+      },
+      {
+        "from": "docs/AI使用与修改说明.md",
+        "to": "ai-kit/docs/AI使用与修改说明.md"
+      },
+      {
+        "from": "resources/ai-kit-README.md",
+        "to": "ai-kit/README.md"
       }
     ]
   }

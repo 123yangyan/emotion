@@ -1,3 +1,4 @@
+import { formatBeijingHm } from '../../../../shared/beijingTime'
 import type { AiCognitiveDistortion, AiRelatedEntry } from '../../../../shared/aiInsightManifest'
 import { QUADRANT_BAR_COLORS, parseQuadrantStats } from '../../utils/aiInsightParse'
 import { ZH } from '../../i18n/zh'
@@ -112,7 +113,7 @@ function formatEntryTime(occurredAt?: string): string {
   if (!occurredAt) return ''
   const d = new Date(occurredAt)
   if (Number.isNaN(d.getTime())) return occurredAt.slice(11, 16)
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  return formatBeijingHm(d)
 }
 
 export function EntryLinkListSection({

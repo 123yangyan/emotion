@@ -6,6 +6,7 @@ import type { FatigueCheck } from "../../../shared/types";
 
 import { resolveTagLists } from "../data/tagLists";
 
+import { nowBeijingIso } from "../../../shared/beijingTime";
 import { formatClockLocal, formatDateShort } from "../utils/formatTime";
 
 import { restoreEntryToForm } from "../utils/entryFormRestore";
@@ -13,6 +14,8 @@ import { restoreEntryToForm } from "../utils/entryFormRestore";
 import { getQuadrantLabel } from "../utils/entryParse";
 
 import { ZH } from "../i18n/zh";
+
+import { useAiInsightsRefresh, useEntriesRefresh } from "../hooks/useDataRefresh";
 
 import RecordViewportForm from "./RecordViewportForm";
 
@@ -221,9 +224,7 @@ export default function MoodRecordForm({
 
   const formRef = useRef<HTMLFormElement>(null);
 
-  const [occurredAtIso, setOccurredAtIso] = useState(() =>
-    new Date().toISOString(),
-  );
+  const [occurredAtIso, setOccurredAtIso] = useState(() => nowBeijingIso());
 
   const [editLoading, setEditLoading] = useState(isEdit);
 
@@ -302,13 +303,13 @@ export default function MoodRecordForm({
     });
   }, [editEntryId, fillForm, initialData, isEdit]);
 
-  useEffect(() => {
+  useEntriesRefresh(() => {
     if (isEdit) return;
 
     void loadLastRecordTime();
   }, [isEdit, loadLastRecordTime]);
 
-  useEffect(() => {
+  useAiInsightsRefresh(() => {
     if (isEdit || isPopup) return;
 
     void window.api.getLatestAiInsight(3).then(setLatestInsight);
@@ -359,7 +360,7 @@ export default function MoodRecordForm({
 
         fatigueCheck: isFatigueCheck ? JSON.stringify(fatigueData) : null,
 
-        occurredAt: isEdit ? occurredAtIso : new Date().toISOString(),
+        occurredAt: isEdit ? occurredAtIso : nowBeijingIso(),
       };
 
       let updated: EntryRow | undefined;

@@ -48,6 +48,4 @@ export interface AppSettings {
   notificationsEnabled: boolean
   /** 记录页标签词表；未设置时使用内置默认 */
   tagLists?: TagListsConfig
-  /** 疲劳检查触发时间（整点小时，默认 18） */
-  fatigueCheckHour?: number
 }

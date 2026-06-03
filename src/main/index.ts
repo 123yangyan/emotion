@@ -7,6 +7,7 @@ import {
   dialog,
   shell
 } from 'electron'
+import { nowBeijingIso, todayBeijingDateKey } from '../shared/beijingTime'
 import { join } from 'path'
 import { writeFileSync } from 'fs'
 import {
@@ -30,10 +31,11 @@ import {
   type EntryInput
 } from './database'
 import {
+  autoExportForOccurredAt,
   initAiExportService,
-  stopAiExportService,
-  triggerManualExport
+  stopAiExportService
 } from './ai-export-service'
+import { notifyEntriesChanged, setRendererNotifyWindow } from './renderer-notify'
 import { loadSettings, saveSettings } from './settings'
 import {
   processDailyCheckIn,
@@ -46,8 +48,7 @@ import {
   clearTestReminderOnQuit,
   recordCheckInSnooze,
   getCheckPollIntervalMs,
-  scheduleFatigueCheck,
-  openFatigueCheckWindow
+  scheduleFatigueCheck
 } from './daily-checkin-service'
 import { loadTrayIcon, loadWindowIcon } from './trayIcon'
 import {
@@ -89,6 +90,7 @@ function createMainWindow(): void {
   })
 
   setMainWindowGetter(() => mainWindow)
+  setRendererNotifyWindow(() => mainWindow)
   setUpdateWindowGetter(() => mainWindow)
 
   if (process.env.ELECTRON_RENDERER_URL) {
@@ -140,14 +142,16 @@ function registerIpc(): void {
   ipcMain.handle('entry:create', (_e, input: EntryInput) => {
     const entry = createEntry({
       ...input,
-      occurredAt: input.occurredAt || new Date().toISOString()
+      occurredAt: input.occurredAt || nowBeijingIso()
     })
+    autoExportForOccurredAt(entry.occurred_at)
+    notifyEntriesChanged()
     onDailyRecordSaved()
     return entry
   })
 
   ipcMain.handle('entry:listToday', (_e, dateStr?: string) => {
-    const d = dateStr ?? new Date().toISOString().slice(0, 10)
+    const d = dateStr ?? todayBeijingDateKey()
     return listEntriesByDate(d)
   })
 
@@ -163,12 +167,28 @@ function registerIpc(): void {
 
   ipcMain.handle('entry:update', (_e, id: number, input: EntryInput) => {
     const row = updateEntry(id, input)
+    if (row) {
+      autoExportForOccurredAt(row.occurred_at)
+      notifyEntriesChanged()
+    }
     return row ?? null
   })
 
-  ipcMain.handle('entry:delete', (_e, id: number) => deleteEntry(id))
+  ipcMain.handle('entry:delete', (_e, id: number) => {
+    const existing = getEntryById(id)
+    const ok = deleteEntry(id)
+    if (ok && existing) {
+      autoExportForOccurredAt(existing.occurred_at)
+      notifyEntriesChanged()
+    }
+    return ok
+  })
 
-  ipcMain.handle('entry:deleteMany', (_e, ids: unknown) => deleteEntries(ids as number[]))
+  ipcMain.handle('entry:deleteMany', (_e, ids: unknown) => {
+    const deleted = deleteEntries(ids as number[])
+    if (deleted > 0) notifyEntriesChanged()
+    return deleted
+  })
 
   ipcMain.handle('settings:get', () => loadSettings())
 
@@ -189,7 +209,7 @@ function registerIpc(): void {
     const data = exportJsonBackup()
     const result = await dialog.showSaveDialog(mainWindow!, {
       title: '导出 JSON 备份',
-      defaultPath: `emotion-backup-${new Date().toISOString().slice(0, 10)}.json`,
+      defaultPath: `emotion-backup-${todayBeijingDateKey()}.json`,
       filters: [{ name: 'JSON', extensions: ['json'] }]
     })
     if (result.canceled || !result.filePath) return { ok: false }
@@ -223,11 +243,6 @@ function registerIpc(): void {
     return { ok: true }
   })
 
-  ipcMain.handle('checkin:openFatigue', () => {
-    openFatigueCheckWindow()
-    return { ok: true }
-  })
-
   ipcMain.handle('update:getInfo', () => getUpdateInfo())
   ipcMain.handle('update:check', () => checkForAppUpdate())
   ipcMain.handle('update:download', () => downloadAppUpdate())
@@ -245,8 +260,6 @@ function registerIpc(): void {
   ipcMain.handle('ai:getLatestInsight', (_e, withinDays?: number) =>
     getLatestAiInsight(withinDays ?? 3)
   )
-
-  ipcMain.handle('ai:triggerExport', (_e, dateStr?: string) => triggerManualExport(dateStr))
 }
 
 function restartCheckInTimer(): void {

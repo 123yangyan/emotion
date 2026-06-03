@@ -1,3 +1,4 @@
+import { formatBeijingHm } from '../../../shared/beijingTime'
 import type { ParsedEntry } from './entryParse'
 import { getQuadrantLabel } from './entryParse'
 import type { TagListsConfig } from '../data/tagLists'
@@ -82,8 +83,7 @@ export function analyzeDayQuadrants(
     const quadrantId = assignQuadrant(e.coordX, e.coordY)
     counts[quadrantId]++
 
-    const d = e.occurredAt
-    const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+    const time = formatBeijingHm(e.occurredAt)
     const bodyParts = formatBodyPattern([...e.bodyTags, ...e.behaviorIds], behaviorLabels)
 
     placements.push({

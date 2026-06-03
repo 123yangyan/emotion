@@ -69,7 +69,11 @@ export const AI_INSIGHT_FIELDS: AiInsightFieldDef[] = [
   { key: 'risk_signals', label: '风险信号', zone: 'card_expand', renderType: 'string_list' },
   { key: 'patterns', label: '识别模式', zone: 'card_expand', renderType: 'string_list' },
   { key: 'recommendations', label: '建议行动', zone: 'card_expand', renderType: 'string_list' },
-  { key: 'related_entries', label: '相关日记', zone: 'card_expand', renderType: 'entry_link_list' }
+  { key: 'related_entries', label: '相关日记', zone: 'card_expand', renderType: 'entry_link_list' },
+  { key: 'data_quality', label: '数据质量', zone: 'card_fold', renderType: 'text' },
+  { key: 'thought_themes', label: '今日主题', zone: 'card_expand', renderType: 'string_list' },
+  { key: 'entry_summaries', label: '逐条速览', zone: 'card_expand', renderType: 'entry_link_list' },
+  { key: 'writing_feedback', label: '记录建议', zone: 'card_expand', renderType: 'string_list' }
 ]
 
 export function isCoreKey(key: string): key is AiInsightCoreKey {

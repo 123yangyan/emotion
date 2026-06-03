@@ -20,11 +20,12 @@ import {
   QUADRANT_DEFINITIONS,
   type QuadrantId
 } from '../utils/dayAnalytics'
+import { todayBeijingDateKey, formatBeijingHm } from '../../../shared/beijingTime'
 import CauseChainCanvas from './CauseChainCanvas'
 import EmotionQuadrantGrid from './EmotionQuadrantGrid'
 
 function todayStr(): string {
-  return new Date().toISOString().slice(0, 10)
+  return todayBeijingDateKey()
 }
 
 /** 按象限返回落点颜色 */
@@ -90,8 +91,7 @@ export default function DayChart() {
 
   const chartData = useMemo((): ChartPoint[] => {
     return parsed.map((e) => {
-      const d = e.occurredAt
-      const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+      const time = formatBeijingHm(e.occurredAt)
       const fact =
         e.factTags.join(ZH.emotionJoin) || (e.factSupplement ? e.factSupplement : '\u2014')
       const row = entries.find((r) => r.id === e.id)

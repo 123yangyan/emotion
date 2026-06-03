@@ -1,4 +1,9 @@
 import type { EntryRow } from '../../../main/database'
+import {
+  formatBeijingHm,
+  formatBeijingMonthDay,
+  getBeijingRangeBounds
+} from '../../../shared/beijingTime'
 import type { TagListsConfig } from '../../../shared/types'
 import { isAvoidanceEntry } from './avoidanceEntry'
 import { parseEntries, parseFactField, getQuadrantLabel, getDiaryDisplayText, type ParsedEntry } from './entryParse'
@@ -69,32 +74,20 @@ export function getRangeBounds(
   range: PanoramaRange,
   now: Date = new Date()
 ): { start: Date; end: Date; startIso: string; endIso: string } {
-  const end = new Date(now)
-  const start = new Date(now)
-  if (range === 'day') {
-    start.setHours(0, 0, 0, 0)
-  } else if (range === 'week') {
-    start.setDate(start.getDate() - 6)
-    start.setHours(0, 0, 0, 0)
-  } else {
-    start.setDate(start.getDate() - 29)
-    start.setHours(0, 0, 0, 0)
-  }
+  const { startIso, endIso } = getBeijingRangeBounds(range, now)
   return {
-    start,
-    end,
-    startIso: start.toISOString(),
-    endIso: end.toISOString()
+    start: new Date(startIso),
+    end: new Date(endIso),
+    startIso,
+    endIso
   }
 }
 
 function formatTimeLabel(d: Date, range: PanoramaRange): string {
   if (range === 'day') {
-    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+    return formatBeijingHm(d)
   }
-  const md = `${d.getMonth() + 1}/${d.getDate()}`
-  const hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-  return `${md} ${hm}`
+  return `${formatBeijingMonthDay(d)} ${formatBeijingHm(d)}`
 }
 
 function parseThoughtField(raw: string): string[] {
@@ -217,35 +210,4 @@ export function computeFrequencies(
     steadyEmotions: [],
     lowEmotions: []
   }
-}
-
-// ── 能量审计（阶段五）用到的三个分析函数 ──
-
-/** 提取第四象限（内耗陷阱：低价值+高耗能）的所有记录点 */
-export function extractDrainPoints(points: PanoramaPoint[]): PanoramaPoint[] {
-  return points.filter((p) => p.quadrantId === 'tl')
-}
-
-/** 高频日记摘要统计（按出现次数降序，取前 N 条） */
-export function topFactTags(points: PanoramaPoint[], limit = 3): FrequencyItem[] {
-  const acc: FreqAcc = new Map()
-  for (const p of points) {
-    const text = p.diaryText.trim()
-    if (!text) continue
-    const label = text.length > 40 ? `${text.slice(0, 40)}…` : text
-    bumpFreq(acc, label, p.id)
-  }
-  return topCounts(acc, limit)
-}
-
-/**
- * 净能量值：本周所有记录的 coordX 总和 − coordY 总和。
- * 正值代表本周整体倾向高价值低耗，负值代表高耗低值。
- */
-export function calcNetEnergy(points: PanoramaPoint[]): number {
-  let sum = 0
-  for (const p of points) {
-    sum += p.coordX - p.coordY
-  }
-  return sum
 }

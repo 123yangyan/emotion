@@ -27,8 +27,7 @@ const DEFAULTS: AppSettings = {
   quietStart: '22:00',
   quietEnd: '08:00',
   strongPopup: true,
-  notificationsEnabled: true,
-  fatigueCheckHour: 18
+  notificationsEnabled: true
 }
 
 export function clampReminderIntervalMinutes(minutes: number): number {
@@ -65,14 +64,8 @@ export function loadSettings(): AppSettings {
     quietEnd: getSetting('quietEnd', DEFAULTS.quietEnd),
     strongPopup: getSetting('strongPopup', 'true') === 'true',
     notificationsEnabled: getSetting('notificationsEnabled', 'true') === 'true',
-    tagLists: parseTagLists(getSetting('tagLists', '')),
-    fatigueCheckHour: clampFatigueHour(Number(getSetting('fatigueCheckHour', String(DEFAULTS.fatigueCheckHour))))
+    tagLists: parseTagLists(getSetting('tagLists', ''))
   }
-}
-
-function clampFatigueHour(h: number): number {
-  if (!Number.isFinite(h) || h < 0 || h > 23) return 18
-  return Math.round(h)
 }
 
 export function saveSettings(partial: Partial<AppSettings>): AppSettings {
@@ -88,9 +81,6 @@ export function saveSettings(partial: Partial<AppSettings>): AppSettings {
   setSetting('notificationsEnabled', String(next.notificationsEnabled))
   if (partial.tagLists !== undefined) {
     setSetting('tagLists', JSON.stringify(next.tagLists))
-  }
-  if (partial.fatigueCheckHour !== undefined) {
-    setSetting('fatigueCheckHour', String(next.fatigueCheckHour))
   }
   return next
 }

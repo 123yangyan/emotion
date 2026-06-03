@@ -19,7 +19,6 @@ export interface ElectronAPI {
   exportJson: () => Promise<{ ok: boolean; path?: string }>
   getDataPath: () => Promise<{ dbPath: string; userData: string }>
   openCheckInPopup: () => Promise<{ ok: boolean }>
-  openFatigueCheckPopup: () => Promise<{ ok: boolean }>
   scheduleTestReminder: (
     delaySeconds: number
   ) => Promise<{ ok: boolean; delaySeconds: number; fireAt: string }>
@@ -38,7 +37,8 @@ export interface ElectronAPI {
   openExternalUrl: (url: string) => Promise<{ ok: boolean }>
   getAiInsights: () => Promise<AiInsightRow[]>
   getLatestAiInsight: (withinDays?: number) => Promise<AiInsightRow | null>
-  triggerAiExport: (dateStr?: string) => Promise<{ ok: true; path: string; count: number }>
+  onEntriesChanged: (callback: () => void) => () => void
+  onAiInsightsChanged: (callback: () => void) => () => void
   onUpdateProgress: (callback: (percent: number) => void) => () => void
 }
 
