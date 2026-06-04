@@ -1,46 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { EntryRow, AiInsightRow } from "../../../main/database";
-
-import type { FatigueCheck } from "../../../shared/types";
+import type { EntryRow } from "../../../main/database";
 
 import { resolveTagLists } from "../data/tagLists";
 
-import { nowBeijingIso } from "../../../shared/beijingTime";
+import { beijingDateKey, nowBeijingIso, todayBeijingDateKey } from "../../../shared/beijingTime";
+import {
+  getDailyEntryIndex,
+  getNextDailyEntryIndex,
+} from "../utils/dailyEntryIndex";
 import { formatClockLocal, formatDateShort } from "../utils/formatTime";
 
 import { restoreEntryToForm } from "../utils/entryFormRestore";
 
-import { getQuadrantLabel } from "../utils/entryParse";
-
 import { ZH } from "../i18n/zh";
 
-import { useAiInsightsRefresh, useEntriesRefresh } from "../hooks/useDataRefresh";
+import { useEntriesRefresh } from "../hooks/useDataRefresh";
 
 import RecordViewportForm from "./RecordViewportForm";
 
-function calcFatigueCoord(data: FatigueCheck): { x: number; y: number } {
-  const x = Math.max(
-    -4,
-    Math.min(4, Math.round((data.decision_quality - 4) * 0.6)),
-  );
-
-  const loadBase =
-    data.decision_load === "极多" ? 3 : data.decision_load === "少" ? -1 : 1;
-
-  const symptoms = [data.hesitate, data.escapeTendency, data.brainFog].filter(
-    Boolean,
-  ).length;
-
-  const y = Math.min(4, Math.max(-4, loadBase + symptoms));
-
-  return { x, y };
-}
-
 interface Props {
   variant?: "page" | "popup" | "modal";
-
-  isFatigueCheck?: boolean;
 
   editEntryId?: number;
 
@@ -49,140 +29,10 @@ interface Props {
   onSaved: (updated?: EntryRow) => void;
 
   onCancel?: () => void;
-
-  onViewInsight?: () => void;
 }
-
-function FatigueSection({
-  data,
-
-  onChange,
-}: {
-  data: FatigueCheck;
-
-  onChange: (next: FatigueCheck) => void;
-}): JSX.Element {
-  const setField = <K extends keyof FatigueCheck>(
-    key: K,
-    value: FatigueCheck[K],
-  ): void => {
-    onChange({ ...data, [key]: value });
-  };
-
-  const { x, y } = calcFatigueCoord(data);
-
-  const quadrantName = getQuadrantLabel(x, y);
-
-  const coordStr = `(${x > 0 ? `+${x}` : x}, ${y > 0 ? `+${y}` : y})`;
-
-  const symptoms = [data.hesitate, data.escapeTendency, data.brainFog].filter(
-    Boolean,
-  ).length;
-
-  return (
-    <div className="fatigue-section record-viewport__card">
-      <div className="fatigue-section__header">
-        <p className="fatigue-section__title">{ZH.fatigueTitle}</p>
-
-        <p className="fatigue-section__subtitle">{ZH.fatigueSubtitle}</p>
-      </div>
-
-      <div className="fatigue-section__field">
-        <span className="fatigue-section__label">{ZH.fatigueQuality}</span>
-
-        <div className="fatigue-section__quality-row">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-            <button
-              key={n}
-              type="button"
-              className={`fatigue-quality-btn fatigue-quality-btn--${n <= 3 ? "low" : n >= 7 ? "high" : "mid"}${data.decision_quality === n ? " is-active" : ""}`}
-              onClick={() => setField("decision_quality", n)}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-
-        <div className="fatigue-quality-legend">
-          <span>极差</span>
-          <span>极优</span>
-        </div>
-      </div>
-
-      <div className="fatigue-section__field">
-        <span className="fatigue-section__label">{ZH.fatigueDecisionLoad}</span>
-
-        <div className="fatigue-section__radio-group">
-          {(["少", "正常", "极多"] as const).map((v) => (
-            <button
-              key={v}
-              type="button"
-              className={`fatigue-section__radio-btn${data.decision_load === v ? " is-active" : ""}`}
-              onClick={() => setField("decision_load", v)}
-            >
-              {v}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="fatigue-section__field">
-        <span className="fatigue-section__label">{ZH.fatigueChecks}</span>
-
-        <label className="fatigue-section__checkbox-row">
-          <input
-            type="checkbox"
-            checked={data.hesitate}
-            onChange={(e) => setField("hesitate", e.target.checked)}
-          />
-
-          {ZH.fatigueHesitate}
-        </label>
-
-        <label className="fatigue-section__checkbox-row">
-          <input
-            type="checkbox"
-            checked={data.escapeTendency}
-            onChange={(e) => setField("escapeTendency", e.target.checked)}
-          />
-
-          {ZH.fatigueEscape}
-        </label>
-
-        <label className="fatigue-section__checkbox-row">
-          <input
-            type="checkbox"
-            checked={data.brainFog}
-            onChange={(e) => setField("brainFog", e.target.checked)}
-          />
-
-          {ZH.fatigueBrainFog}
-        </label>
-      </div>
-
-      <p className="fatigue-section__auto-hint">
-        {ZH.fatigueAutoCoord(symptoms, quadrantName, coordStr)}
-      </p>
-    </div>
-  );
-}
-
-const DEFAULT_FATIGUE: FatigueCheck = {
-  decision_load: "正常",
-
-  hesitate: false,
-
-  escapeTendency: false,
-
-  brainFog: false,
-
-  decision_quality: 5,
-};
 
 export default function MoodRecordForm({
   variant = "page",
-
-  isFatigueCheck = false,
 
   editEntryId,
 
@@ -191,8 +41,6 @@ export default function MoodRecordForm({
   onSaved,
 
   onCancel,
-
-  onViewInsight,
 }: Props): JSX.Element {
   const isPopup = variant === "popup";
 
@@ -209,8 +57,6 @@ export default function MoodRecordForm({
   const [coordY, setCoordY] = useState(0);
 
   const [hasCoordSelection, setHasCoordSelection] = useState(false);
-
-  const [fatigueData, setFatigueData] = useState<FatigueCheck>(DEFAULT_FATIGUE);
 
   const [saving, setSaving] = useState(false);
 
@@ -232,7 +78,29 @@ export default function MoodRecordForm({
     null,
   );
 
-  const [latestInsight, setLatestInsight] = useState<AiInsightRow | null>(null);
+  const [dailyIndexLabel, setDailyIndexLabel] = useState<string | null>(null);
+
+  const loadDailyIndexLabel = useCallback(async (): Promise<void> => {
+    const all = await window.api.listAllEntries();
+    if (isEdit && editEntryId != null) {
+      const row =
+        initialData?.id === editEntryId
+          ? initialData
+          : await window.api.getEntry(editEntryId);
+      if (!row) {
+        setDailyIndexLabel(null);
+        return;
+      }
+      const dk = beijingDateKey(row.occurred_at);
+      const meta = getDailyEntryIndex(all, editEntryId, dk);
+      setDailyIndexLabel(
+        meta ? ZH.recordDailyIndexEdit(meta.index, meta.total) : null,
+      );
+      return;
+    }
+    const meta = getNextDailyEntryIndex(all, todayBeijingDateKey());
+    setDailyIndexLabel(ZH.recordDailyIndexNew(meta.index));
+  }, [editEntryId, initialData, isEdit]);
 
   const loadLastRecordTime = useCallback(async (): Promise<void> => {
     const all = await window.api.listAllEntries();
@@ -304,16 +172,15 @@ export default function MoodRecordForm({
   }, [editEntryId, fillForm, initialData, isEdit]);
 
   useEntriesRefresh(() => {
+    void loadDailyIndexLabel();
     if (isEdit) return;
 
     void loadLastRecordTime();
-  }, [isEdit, loadLastRecordTime]);
+  }, [isEdit, loadLastRecordTime, loadDailyIndexLabel]);
 
-  useAiInsightsRefresh(() => {
-    if (isEdit || isPopup) return;
-
-    void window.api.getLatestAiInsight(3).then(setLatestInsight);
-  }, [isEdit, isPopup]);
+  useEffect(() => {
+    void loadDailyIndexLabel();
+  }, [loadDailyIndexLabel]);
 
   const pickCoord = useCallback((x: number, y: number): void => {
     setCoordX(x);
@@ -326,17 +193,11 @@ export default function MoodRecordForm({
   const submitForm = useCallback(async (): Promise<void> => {
     setError("");
 
-    if (!isFatigueCheck && !hasCoordSelection) {
+    if (!hasCoordSelection) {
       setError(ZH.selectCoord);
 
       return;
     }
-
-    const autoCoord = isFatigueCheck ? calcFatigueCoord(fatigueData) : null;
-
-    const finalX = autoCoord ? autoCoord.x : coordX;
-
-    const finalY = autoCoord ? autoCoord.y : coordY;
 
     const trimmedDiary = diaryText.trim();
 
@@ -354,11 +215,11 @@ export default function MoodRecordForm({
 
         reactionNote: trimmedDiary,
 
-        coordX: finalX,
+        coordX,
 
-        coordY: finalY,
+        coordY,
 
-        fatigueCheck: isFatigueCheck ? JSON.stringify(fatigueData) : null,
+        fatigueCheck: null,
 
         occurredAt: isEdit ? occurredAtIso : nowBeijingIso(),
       };
@@ -386,9 +247,8 @@ export default function MoodRecordForm({
 
         setHasCoordSelection(false);
 
-        setFatigueData(DEFAULT_FATIGUE);
-
         void loadLastRecordTime();
+        void loadDailyIndexLabel();
       }
 
       onSaved(updated);
@@ -418,13 +278,9 @@ export default function MoodRecordForm({
 
     diaryText,
 
-    fatigueData,
-
     editEntryId,
 
     isEdit,
-
-    isFatigueCheck,
 
     isPopup,
 
@@ -433,6 +289,7 @@ export default function MoodRecordForm({
     onSaved,
 
     loadLastRecordTime,
+    loadDailyIndexLabel,
   ]);
 
   const handleSubmit = (e: React.FormEvent): void => {
@@ -479,40 +336,8 @@ export default function MoodRecordForm({
     return <p className="hint">{ZH.loading}</p>;
   }
 
-  const fatigueExtra = isFatigueCheck ? (
-    <FatigueSection data={fatigueData} onChange={setFatigueData} />
-  ) : undefined;
-
-  const insightBanner =
-    !isEdit && !isPopup && latestInsight ? (
-      <div className="ai-insight-banner" role="note">
-        <div className="ai-insight-banner__text">
-          <span className="ai-insight-banner__label">
-            {ZH.insightBannerTitle(latestInsight.date)}
-          </span>
-
-          <span className="ai-insight-banner__summary">
-            {latestInsight.key_insight}
-          </span>
-        </div>
-
-        {onViewInsight ? (
-          <button
-            type="button"
-            className="ai-insight-banner__link"
-            onClick={onViewInsight}
-          >
-            {ZH.insightViewDetail}
-          </button>
-        ) : null}
-      </div>
-    ) : null;
-
   return (
-    <>
-      {insightBanner}
-
-      <RecordViewportForm
+    <RecordViewportForm
         formRef={formRef}
         variant={variant}
         closing={closing}
@@ -528,14 +353,12 @@ export default function MoodRecordForm({
         setFocusZone={setFocusZone}
         diaryText={diaryText}
         setDiaryText={setDiaryText}
-        isFatigueCheck={isFatigueCheck}
-        fatigueExtra={fatigueExtra}
         error={error}
         saving={saving}
         saveSuccess={saveSuccess}
         onCancel={onCancel}
         onSubmit={handleSubmit}
+        dailyIndexLabel={dailyIndexLabel}
       />
-    </>
   );
 }

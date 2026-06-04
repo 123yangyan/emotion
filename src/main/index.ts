@@ -47,8 +47,7 @@ import {
   getTestReminderStatus,
   clearTestReminderOnQuit,
   recordCheckInSnooze,
-  getCheckPollIntervalMs,
-  scheduleFatigueCheck
+  getCheckPollIntervalMs
 } from './daily-checkin-service'
 import { loadTrayIcon, loadWindowIcon } from './trayIcon'
 import {
@@ -277,7 +276,6 @@ app.whenReady().then(() => {
   createMainWindow()
   createTray()
   restartCheckInTimer()
-  scheduleFatigueCheck()
 })
 
 app.on('before-quit', () => {

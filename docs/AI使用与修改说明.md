@@ -89,6 +89,9 @@ AI 会把结果写入：
 | 记录页 banner | 日期 + 一句话摘要 +「查看详情」 | **否**（固定 core 字段） |
 | 洞察页折叠态 | 摘要、风险、条数 | 部分（如 `entry_count`） |
 | 洞察页展开区 | manifest 中 `card_expand` 且有值的字段 | **是**（按 manifest 顺序） |
+| **仪表**页签（三层 IA） | 心情环+趋势、风险主因、双引擎+7日 Sparkline、标签流、主指导+日记入口 | **是**（manifest v4：`mood_trend`、`risk_reason`、`guidance_primary` 等） |
+
+运行 `/analyze-records` 后，打开顶栏 **「仪表」** 查看状态预警 → 双轴成长 → 微迭代指南。
 
 ---
 
@@ -185,16 +188,18 @@ AI 写入该字段后，洞察页展开区会**自动多一块「能量趋势」
 
 ## 七、测试洞察展示（开发 / 预览 UI）
 
-项目内置 3 组测试用例，覆盖 **v2 完整**、**高风险**、**v1 最小** 三种情况：
+项目内置测试用例，**今日 / 昨日** 为 manifest v4 仪表数据（含趋势/主因/标签/主指导），**前日** 为 v2 完整洞察（无 v4 字段，用于对比降级）：
 
 ```bash
 npm run seed:ai-insight
 ```
 
 脚本会把 JSON 写入 `%APPDATA%\emotion-diary\data\ai-results\`（今日 / 昨日 / 前日各一条）。  
-然后 **重启 App** 或切换到 **「AI 洞察」** 页签，应看到 3 张卡片；点击 **「展开详情 ▼」** 预览各 manifest 区块。
+然后 **重启 App** 或切换到 **「仪表」** 页签：今日应看到能力增长 72、经历丰富 58、心情指数 61、中风险与三条建议中的第一条指导。日期下拉选「昨日」可看到高风险与更低分数。
 
-Fixture 源文件：`docs/fixtures/ai-insight-test-*.json`
+**「AI 洞察」** 页签仍可查看 3 张卡片；点击 **「展开详情 ▼」** 预览各 manifest 区块。
+
+Fixture 源文件：`docs/fixtures/ai-insight-test-*.json`（仪表专用：`ai-insight-test-dashboard-v4.json`）
 
 ---
 

@@ -1,4 +1,4 @@
-# 情绪记录（Windows）v3.6.0
+# 情绪记录（Windows）v3.7.0
 
 本地离线情绪日记桌面应用：**Electron + React + TypeScript**，数据存于用户目录下的 **JSON 文件**（无 SQLite / 无原生编译依赖）。
 
@@ -78,8 +78,8 @@ npm run seed:ai-insight   # 写入 AI 洞察测试数据（可选）
 ## 维护者发布
 
 ```bash
-git tag v3.6.0
-git push origin v3.6.0
+git tag v3.7.0
+git push origin v3.7.0
 ```
 
 推送 `v*` 标签后，`.github/workflows/release.yml` 在 Windows 上执行 `npm run dist` 并上传 `release/` 安装包。
@@ -105,7 +105,7 @@ git push origin v3.6.0
 | 任务坐标 | `ValueEnergyGrid` | `coord_x`, `coord_y` | -4~+4，四象限 |
 | 身心/行为 | 弹窗等场景 | `body_tags`, `behavior_tags` | JSON 数组字符串 |
 | 发生时间 | 界面显示 | `occurred_at` | ISO 字符串 |
-| 疲劳检查 | 18:00 弹窗 | `fatigue_check` | JSON 或 null |
+| 疲劳检查（历史） | 历史只读 | `fatigue_check` | 旧记录 JSON，新记录为 null |
 
 解析：`utils/entryParse.ts`；历史摘要：`utils/historyRowPreview.ts`；编辑回填：`utils/entryFormRestore.ts`。
 
@@ -180,7 +180,7 @@ flowchart TB
 | `insight` | `AiInsightPage` | AI 洞察卡片 |
 | `settings` | `SettingsPage` | 提醒、备份、更新 |
 
-弹窗：`?mode=checkin` / `?mode=fatigue_check` → `CheckInPanel`。
+弹窗：`?mode=checkin` → `CheckInPanel`。
 
 ---
 
@@ -264,13 +264,13 @@ src/
 
 ---
 
-## 功能清单（v3.6.0）
+## 功能清单（v3.7.0）
 
 - **记录**：四象限坐标 + 日记正文；Enter 保存
 - **历史**：日记风格列表、编辑、批量删除
 - **分析**：日/周/月全景舱
 - **AI 洞察**：manifest 驱动展示；关联 entry 跳转历史
-- **设置**：提醒间隔（分钟）、静默、疲劳检查、JSON 备份（含 AI）、GitHub 更新检查
+- **设置**：提醒间隔（分钟）、静默、JSON 备份（含 AI）、GitHub 更新检查
 - **提醒**：托盘四象限图标 + 打卡小窗
 
 ---

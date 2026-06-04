@@ -1,4 +1,4 @@
-# 情绪日记 AI 输出字段（Manifest v2）
+# 情绪日记 AI 输出字段（Manifest v4）
 
 单一契约源文件：`src/shared/aiInsightManifest.ts`
 
@@ -30,6 +30,24 @@ App 会按本表自动渲染 **payload 中有值的字段**。修改输出内容
 | `writing_feedback` | string_list | card_expand | 记录建议：哪些记录太空洞、建议补充的内容（数据良好时可省略） |
 | `related_entries` | entry_link_list | card_expand | `{ entry_id, note?, occurred_at? }[]` |
 
+## 仪表页专用（zone: dashboard，洞察卡片不展示）
+
+| key | 类型 | 说明 |
+| --- | --- | --- |
+| `ability_growth_score` | 0–100 整数 | 能力增长点 |
+| `experience_richness_score` | 0–100 整数 | 经历丰富点 |
+| `mood_index` | 0–100 整数 | 心情指数 |
+| `mood_trend` | up / down / stable | 心情趋势箭头 |
+| `mood_context` | string ≤40 | 心情情境一句 |
+| `risk_reason` | string ≤30 | 风险主因（UI：中风险：xxx） |
+| `growth_contributors` | string[] ≤3 | 能力增长贡献点 |
+| `experience_highlights` | string[] ≤3 | 经历高光 |
+| `value_energy_tags` | string[] ≤6 | 价值/耗能高频标签 |
+| `guidance_primary` | string | 5% 微迭代主行动 |
+| `guidance_target_time` | string 可选 | 如 15:00 |
+
+`risk_level` 与 `guidance_primary` 在仪表三层 IA 中展示；完整建议列表仍在 `recommendations`。
+
 ### 文字字段读取优先级
 
 分析时请按以下优先级读取每条 entry 的文字内容：
@@ -53,4 +71,4 @@ App 会按本表自动渲染 **payload 中有值的字段**。修改输出内容
 { key: 'energy_trend', label: '能量趋势', zone: 'card_expand', renderType: 'paragraph' }
 ```
 
-完整示例见 [examples/analyze-output-v2.json](examples/analyze-output-v2.json)。
+完整示例见 [examples/analyze-output-v4.json](examples/analyze-output-v4.json)。

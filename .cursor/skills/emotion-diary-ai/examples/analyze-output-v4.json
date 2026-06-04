@@ -1,0 +1,26 @@
+{
+  "schema_version": 4,
+  "date": "2026-06-02",
+  "analyzed_at": "2026-06-02T22:05:12.000Z",
+  "entry_count": 4,
+  "risk_level": "medium",
+  "ability_growth_score": 72,
+  "experience_richness_score": 58,
+  "mood_index": 61,
+  "mood_trend": "down",
+  "mood_context": "下午内耗拉高，整体低于昨日",
+  "risk_reason": "连续决策过载",
+  "growth_contributors": ["上午心流写作", "攻坚任务完成"],
+  "experience_highlights": ["产品迭代", "会议反馈"],
+  "value_energy_tags": ["心流区·上午", "内耗陷阱·下午", "下午14-18点耗能升高"],
+  "guidance_primary": "下午 3 点安排 10 分钟离开工位，降低连续决策负荷",
+  "guidance_target_time": "15:00",
+  "key_insight": "上午心流区记录较多，下午内耗陷阱出现 2 次",
+  "recommendations": [
+    "下午 3 点安排 10 分钟离开工位",
+    "复盘时先写事实再写感受"
+  ],
+  "related_entries": [
+    { "entry_id": 3, "occurred_at": "2026-06-02T14:35:00", "note": "内耗陷阱 · 会议反馈" }
+  ]
+}

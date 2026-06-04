@@ -44,9 +44,16 @@ export function parseAiResultToInput(raw: Record<string, unknown>): AiInsightInp
 
   if (!keyInsight && !partialOnly) return null
 
-  /** 全量分析含 summary / quadrant_stats；增量命令只改部分字段 */
+  /** 全量分析含 summary / 象限统计 / 仪表指数；增量命令只改部分字段 */
   const isFullAnalysis = Boolean(
-    keyInsight && (payload.summary || payload.quadrant_stats || payload.entry_count)
+    keyInsight &&
+      (payload.summary ||
+        payload.quadrant_stats ||
+        payload.entry_count ||
+        payload.ability_growth_score != null ||
+        payload.mood_index != null ||
+        payload.guidance_primary ||
+        payload.mood_trend)
   )
 
   return {

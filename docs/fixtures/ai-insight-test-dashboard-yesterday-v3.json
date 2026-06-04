@@ -1,0 +1,31 @@
+{
+  "schema_version": 3,
+  "date": "{{DATE}}",
+  "analyzed_at": "{{ANALYZED_AT}}",
+  "entry_count": 3,
+  "risk_level": "high",
+  "ability_growth_score": 28,
+  "experience_richness_score": 41,
+  "mood_index": 22,
+  "data_quality": "moderate",
+  "key_insight": "连续高耗能内耗，自我否定明显，建议暂停重要决策并优先休息",
+  "summary": "昨日 3 条记录，2 条内耗陷阱、1 条攻坚区高耗能。晚间仍有高耗能复盘，thought 中出现自我否定用语。",
+  "quadrant_stats": {
+    "攻坚区": 1,
+    "心流区": 0,
+    "机械区": 0,
+    "内耗陷阱": 2
+  },
+  "cognitive_distortions": [
+    { "type": "自我否定", "quote": "我做什么都没用", "entry_id": 4 }
+  ],
+  "patterns": ["晚间高耗能复盘", "绝对化自我否定"],
+  "risk_signals": ["连续内耗陷阱", "自我否定用语", "晚间仍高耗能"],
+  "recommendations": [
+    "今日暂停重要决策，先休息 30 分钟再做计划",
+    "若类似状态持续 3 天以上，考虑寻求专业支持"
+  ],
+  "related_entries": [
+    { "entry_id": 4, "occurred_at": "{{DATE}}T20:10:00", "note": "内耗陷阱 · 加班复盘" }
+  ]
+}

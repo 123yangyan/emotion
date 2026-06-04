@@ -1,0 +1,34 @@
+{
+  "schema_version": 5,
+  "date": "{{DATE}}",
+  "analyzed_at": "{{ANALYZED_AT}}",
+  "entry_count": 3,
+  "risk_level": "high",
+  "ability_growth_score": 28,
+  "experience_richness_score": 41,
+  "mood_index": 22,
+  "mood_trend": "down",
+  "mood_context": "全天高耗能内耗，自我否定明显",
+  "risk_reason": "连续内耗与自我否定",
+  "growth_contributors": [],
+  "experience_highlights": ["加班复盘"],
+  "value_energy_tags": ["内耗陷阱·晚间", "攻坚区·高耗能", "自我否定·2次"],
+  "guidance_primary": "今日暂停重要决策，先休息 30 分钟再做计划",
+  "growth_phase_label": "筑底期",
+  "continuity_summary": "连续第 3 天高风险内耗，心情指数处于近 7 日低位",
+  "key_insight": "连续高耗能内耗，自我否定明显，建议暂停重要决策",
+  "quadrant_stats": {
+    "攻坚区": 1,
+    "心流区": 0,
+    "机械区": 0,
+    "内耗陷阱": 2
+  },
+  "risk_signals": ["连续内耗陷阱", "自我否定用语"],
+  "recommendations": [
+    "今日暂停重要决策，先休息 30 分钟",
+    "若持续数天，考虑寻求专业支持"
+  ],
+  "related_entries": [
+    { "entry_id": 4, "occurred_at": "{{DATE}}T20:10:00", "note": "内耗陷阱 · 加班复盘" }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "schema_version": 5,
+  "date": "{{DATE}}",
+  "analyzed_at": "{{ANALYZED_AT}}",
+  "entry_count": 4,
+  "risk_level": "medium",
+  "ability_growth_score": 72,
+  "experience_richness_score": 58,
+  "mood_index": 61,
+  "mood_trend": "down",
+  "mood_context": "下午内耗拉高，整体低于昨日",
+  "risk_reason": "连续决策过载",
+  "growth_contributors": ["上午心流写作", "攻坚任务完成"],
+  "experience_highlights": ["产品迭代", "会议反馈", "晚间复盘"],
+  "value_energy_tags": ["心流区·上午", "内耗陷阱·下午", "下午14-18点耗能升高", "过度概括·1次"],
+  "guidance_primary": "下午 3 点安排 10 分钟离开工位，降低连续决策负荷",
+  "guidance_target_time": "15:00",
+  "growth_phase_label": "回落期",
+  "continuity_summary": "连续第 2 天下午内耗拉高，能力分尚可但心情较昨日下滑",
+  "data_quality": "moderate",
+  "key_insight": "上午心流区记录较多，下午内耗陷阱出现 2 次，整体能力感尚可但心情波动明显",
+  "summary": "今日共 4 条记录。09:00–12:00 两条落在心流区。14:30 与 17:00 各一条内耗陷阱。",
+  "quadrant_stats": {
+    "攻坚区": 0,
+    "心流区": 2,
+    "机械区": 0,
+    "内耗陷阱": 2
+  },
+  "thought_themes": ["产品迭代", "会议反馈", "晚间复盘"],
+  "patterns": ["下午 14–18 点耗能升高", "上午心流集中"],
+  "risk_signals": ["2 条内耗陷阱", "下午绝对化用语 1 次"],
+  "recommendations": [
+    "下午 3 点安排 10 分钟离开工位，降低连续决策负荷",
+    "复盘时先写「事实」再写「感受」，避免「每次」「总是」"
+  ],
+  "entry_summaries": [
+    { "entry_id": 1, "occurred_at": "{{DATE}}T09:15:00", "note": "专注写方案，心流状态" },
+    { "entry_id": 3, "occurred_at": "{{DATE}}T14:35:00", "note": "会议反馈后焦虑" },
+    { "entry_id": 4, "occurred_at": "{{DATE}}T17:20:00", "note": "加班复盘，强耗能内耗" }
+  ],
+  "related_entries": [
+    { "entry_id": 3, "occurred_at": "{{DATE}}T14:35:00", "note": "内耗陷阱 · 会议反馈" },
+    { "entry_id": 4, "occurred_at": "{{DATE}}T17:20:00", "note": "内耗陷阱 · 加班复盘" }
+  ]
+}

@@ -26,7 +26,7 @@ function parseJsonObject(raw: string | undefined): Record<string, unknown> {
   }
 }
 
-function parseStringArray(raw: unknown): string[] {
+export function parseStringArray(raw: unknown): string[] {
   if (Array.isArray(raw)) return raw.map(String).filter(Boolean)
   if (typeof raw === 'string') {
     try {

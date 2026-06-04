@@ -9,6 +9,7 @@ import {
   HISTORY_PAGE_SIZE,
   type HistoryRowView
 } from '../utils/historyRowPreview'
+import { buildDailyIndexMap } from '../utils/dailyEntryIndex'
 import CoordMiniBadge from './CoordMiniBadge'
 import MoodRecordForm from './MoodRecordForm'
 import { useEntriesRefresh } from '../hooks/useDataRefresh'
@@ -55,6 +56,8 @@ export default function EntryHistoryPage({
   useEntriesRefresh(() => {
     void load()
   }, [load, tagListsVersion])
+
+  const dailyIndexMap = useMemo(() => buildDailyIndexMap(entries), [entries])
 
   const rows: HistoryRowView[] = useMemo(
     () => entries.map((e) => buildHistoryRowView(e, emotionLabels, thoughtTags)),
@@ -312,7 +315,17 @@ export default function EntryHistoryPage({
                         />
                       </label>
                       <div className="history-card__main">
-                        <time className="history-card__time">{row.time}</time>
+                        <time className="history-card__time">
+                          {row.time}
+                          {(() => {
+                            const meta = dailyIndexMap.get(row.id)
+                            return meta && meta.total > 1 ? (
+                              <span className="history-card__daily-index">
+                                {ZH.historyDailyIndexShort(meta.index, meta.total)}
+                              </span>
+                            ) : null
+                          })()}
+                        </time>
                         <div className="history-card__body">
                           <div className="history-card__diary-col">
                             {row.diaryBody ? (

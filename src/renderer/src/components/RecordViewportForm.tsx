@@ -21,14 +21,13 @@ interface Props {
   setFocusZone?: (z: 'coord' | 'diary' | null) => void
   diaryText: string
   setDiaryText: (v: string) => void
-  /** 疲劳检查模式：底部追加额外区块 */
-  isFatigueCheck?: boolean
-  fatigueExtra?: React.ReactNode
   error: string
   saving: boolean
   saveSuccess?: boolean
   onCancel?: () => void
   onSubmit: (e: React.FormEvent) => void
+  /** 同日多条日记时的序号提示，如「今日第 2 条」 */
+  dailyIndexLabel?: string | null
 }
 
 function zoneClass(
@@ -58,13 +57,12 @@ export default function RecordViewportForm({
   setFocusZone,
   diaryText,
   setDiaryText,
-  isFatigueCheck = false,
-  fatigueExtra,
   error,
   saving,
   saveSuccess = false,
   onCancel,
-  onSubmit
+  onSubmit,
+  dailyIndexLabel = null
 }: Props): JSX.Element {
   const isPopup = variant === 'popup'
   const isModal = variant === 'modal'
@@ -106,10 +104,7 @@ export default function RecordViewportForm({
 
   return (
     <form ref={formRef} className={formClass} onSubmit={onSubmit}>
-      {isFatigueCheck && fatigueExtra}
-
-      {!isFatigueCheck && (
-        <div className="record-viewport__split">
+      <div className="record-viewport__split">
           <section
             ref={coordRef}
             className={zoneClass(
@@ -144,6 +139,9 @@ export default function RecordViewportForm({
               {ZH.diaryDateWeekday(dateLabel) ? (
                 <span className="diary-date-header__weekday">{ZH.diaryDateWeekday(dateLabel)}</span>
               ) : null}
+              {dailyIndexLabel ? (
+                <span className="record-viewport__daily-index">{dailyIndexLabel}</span>
+              ) : null}
             </div>
             <DiaryInput
               value={diaryText}
@@ -154,7 +152,6 @@ export default function RecordViewportForm({
             />
           </section>
         </div>
-      )}
 
       {error ? <p className="error record-viewport__error">{error}</p> : null}
 

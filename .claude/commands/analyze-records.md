@@ -5,11 +5,12 @@ argument-hint: [YYYY-MM-DD 可选，默认今天]
 
 分析 emotion-diary 当日导出数据，输出结构化 AI 洞察。
 
-**输出字段以 `src/shared/aiInsightManifest.ts` 为准**；下方 JSON 为当前 manifest v2 示例。  
+**输出字段以 `src/shared/aiInsightManifest.ts` 为准**；下方 JSON 为当前 manifest v5 示例。  
 **完整使用与修改说明**：项目根目录 `docs/AI使用与修改说明.md`。
 
 ## 步骤
 
+0. **跨日上下文（推荐）**：读取 `%APPDATA%/emotion-diary/data/ai-results/` 目录下，目标日期**之前**最近 **3–5 个**已有 JSON（按 `date` 排序）。提取其中的 `mood_index`、`ability_growth_score`、`growth_phase_label`、`continuity_summary`、`key_insight` 等，用于步骤 ⑪ 的跨日连贯分析；若目录为空则跳过。
 1. 确定日期：`$ARGUMENTS` 若为空则用今天（本地日期 YYYY-MM-DD）。
 2. 读取导出文件（Windows 用户数据目录）：
    - `%APPDATA%/emotion-diary/data/ai-export/{date}.json`
@@ -83,6 +84,25 @@ argument-hint: [YYYY-MM-DD 可选，默认今天]
    - 总分 ≥ 4 → `high`；1-3 → `medium`；0 → `low`
    - 若绝大多数记录无文字（`data_quality: sparse`），无法判断信号时默认 `low`，在 `risk_signals` 中注明「文字不足，风险无法准确评估」
 
+   **⑨ 仪表指数（必填，0–100 整数）** → `ability_growth_score` / `experience_richness_score` / `mood_index`
+   - **能力增长点**：心流区、攻坚区占比越高越高；`coord_x` 均值偏正加分；疲劳检查 `decision_quality` 高加分；内耗陷阱占比高则扣分。无记录时写 `0`。
+   - **经历丰富点**：有效文字条数、`thought_themes` 多样性、日记平均字数、`entry_count` 综合；重复录入扣分。`sparse` 时通常 ≤40。
+   - **心情指数**：`coord_x` 均值与内耗陷阱占比综合（内耗多、x 偏负则低）；心流区多、x 偏正则高。不要与 `risk_level` 混用同一套规则，但方向应一致。
+
+   **⑩ 仪表结构化字段（v4+，必填）** — 输出情境-原因链，禁止空泛形容词：
+   - `mood_trend`：`up` / `down` / `stable`，相对昨日同类记录或当日早晚变化
+   - `mood_context`：≤40 字，一句说明今日心情指数背后的情境（如「下午内耗拉高，整体低于昨日」）
+   - `risk_reason`：≤30 字，风险主因名词短语（如「连续决策过载」），用于 UI「中风险：xxx」
+   - `growth_contributors`：≤3 条，能力增长点依据（如「上午心流写作」「攻坚任务完成」）
+   - `experience_highlights`：≤3 条，经历丰富点依据；可与 `thought_themes` 重叠但更偏「今日高光瞬间」
+   - `value_energy_tags`：≤6 条，价值/耗能高频标签（如「心流区·上午」「内耗陷阱·下午」），从象限+时段+patterns 提炼
+   - `guidance_primary`：一条可执行的 5% 微迭代主行动（≤50 字），从 `recommendations` 中选最重要的一条单独写出
+   - `guidance_target_time`：可选，如 `15:00`，仅当主行动含明确时间点时填写
+
+   **⑪ 跨日连贯（v5，必填）** — 结合步骤 0 的历史 ai-results 与当日分析：
+   - `growth_phase_label`：四选一 `筑底期` | `突破期` | `高原期` | `回落期`（相对近几日能力/心情走势）
+   - `continuity_summary`：≤60 字一句，体现连续感（如「连续第 3 天下午内耗偏高，能力分仍缓升」），禁止孤立形容词
+
 4. `risk_level` 已在 ⑧ 中通过信号叠加评估，此处直接采用结论。
 5. 生成 `key_insight`（≤80 字，用于 App 提醒条）：
    - 优先提炼**最显著的一个发现**，按以下优先级选择角度：
@@ -97,11 +117,24 @@ argument-hint: [YYYY-MM-DD 可选，默认今天]
 
 ```json
 {
-  "schema_version": 2,
+  "schema_version": 5,
   "date": "2026-06-02",
   "analyzed_at": "2026-06-02T22:05:12.000Z",
   "entry_count": 5,
   "risk_level": "medium",
+  "ability_growth_score": 45,
+  "experience_richness_score": 62,
+  "mood_index": 38,
+  "mood_trend": "down",
+  "mood_context": "下午内耗拉高，整体低于昨日",
+  "risk_reason": "连续决策过载",
+  "growth_contributors": ["上午心流写作", "攻坚区任务推进"],
+  "experience_highlights": ["产品迭代讨论", "会议反馈"],
+  "value_energy_tags": ["心流区·上午", "内耗陷阱·14-18点", "过度概括·1次"],
+  "guidance_primary": "下午 3 点安排 10 分钟离开工位，降低连续决策负荷",
+  "guidance_target_time": "15:00",
+  "growth_phase_label": "回落期",
+  "continuity_summary": "连续第 2 天下午内耗集中，心情指数较昨日再降",
   "data_quality": "moderate",
   "key_insight": "今日3次落入内耗陷阱，日记里反复出现「每次都这样」等过度概括表达",
   "summary": "今天共记录5条。下午14-18点耗能偏高，3条落在内耗陷阱，日记中多次出现绝对化表达。心流区记录集中在上午。建议关注下午时段的决策负荷。",

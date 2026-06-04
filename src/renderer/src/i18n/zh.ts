@@ -76,7 +76,8 @@ export const ZH = {
   factSceneHintShort: '\u70b9\u9009\u6765\u6e90',
   diaryTitle: '\u4eca\u5929\u2026',
   diaryHintShort: '\u968f\u624b\u5199\u51e0\u53e5\u5c31\u597d',
-  diaryPlaceholder: '\u4eca\u5929\u53d1\u751f\u4e86\u4ec0\u4e48\uff1f\u968f\u4fbf\u5199\u51e0\u53e5\u5c31\u597d',
+  diaryPlaceholder:
+    '今天发生了什么？随便写几句就好。列表行首输入 1. 或 - ，回车自动续号；Shift+Enter 普通换行',
   /** 日记日期头：6月2日 */
   diaryDateDay: (dateLabel: string) => {
     const parts = dateLabel.split('/')
@@ -204,6 +205,7 @@ export const ZH = {
   appTitle: '\u771f\u6211\u72b6\u6001\u8bb0\u5f55',
   appSubtitle: '\u6bcf\u65e5\u7559\u610f \u00b7 \u5145\u7535\u6216\u626e\u6f14 \u00b7 \u8bb0\u5f55',
   tabRecord: '\u8bb0\u5f55',
+  tabDashboard: '\u4eea\u8868',
   tabHistory: '\u5386\u53f2',
   tabChart: '\u4eca\u65e5\u66f2\u7ebf',
   historyTitle: '\u5168\u90e8\u8bb0\u5f55',
@@ -332,23 +334,48 @@ export const ZH = {
   quadrantValencePos: '\u613f\u610f \u2192',
   quadrantAdvice: '\u5efa\u8bae\uff1a',
 
-  // 疲劳检查
-  fatigueTitle: '\ud83d\udcca \u75b2\u52b3\u68c0\u67e5',
-  fatigueSubtitle: '\u5f53\u65e5\u8ba4\u77e5\u8d44\u6e90\u8bc4\u4f30',
-  fatigueDecisionLoad: '\u4eca\u5929\u51b3\u7b56\u91cf\uff1a',
-  fatigueChecks: '\u75b2\u52b3\u75c7\u72b6\u81ea\u68c0\uff08\u53ef\u591a\u9009\uff09\uff1a',
-  fatigueHesitate: '\u5bf9\u7b80\u5355\u51b3\u5b9a\u4e5f\u72b9\u8c6b\u4e0d\u51b3',
-  fatigueEscape: '\u66f4\u503e\u5411\u9003\u907f\uff0c\u5bf9\u5c0f\u632b\u6298\u5931\u53bb\u8010\u5fc3',
-  fatigueBrainFog: '\u611f\u5230\u8111\u96fe\uff08\u903b\u8f91\u63a8\u6f14\u4e0d\u52a8\uff09',
-  fatigueQuality: '\u4eca\u65e5\u6700\u91cd\u8981\u51b3\u7b56\u8d28\u91cf\uff1a',
-  fatigueAutoCoord: (symptoms: number, name: string, coordStr: string) =>
-    symptoms >= 2
-      ? `\u26a1 ${symptoms} \u4e2a\u75b2\u52b3\u4fe1\u53f7 \u00b7 \u80fd\u91cf\u8c61\u9650\u63a8\u7b97\u4e3a ${name} ${coordStr}`
-      : `\u2713 \u80fd\u91cf\u8c61\u9650\u5c06\u81ea\u52a8\u63a8\u7b97\u4e3a ${name} ${coordStr}`,
-  fatigueContextTitle: '\u4eca\u5929\u53d1\u751f\u4e86\u4ec0\u4e48\uff1f',
-  fatigueContextHint: '\u53ef\u9009 \u00b7 \u5e2e\u52a9\u56de\u6eaf\u8bf1\u56e0',
-
   // 设置页新增
+
+  // 仪表
+  dashboardTitle: '\u4eca\u65e5\u4eea\u8868',
+  dashboardDesc:
+    '\u6570\u636e\u6765\u81ea\u5f53\u65e5 AI \u5206\u6790\uff08/analyze-records\uff09\uff1b\u4fdd\u5b58\u65e5\u8bb0\u540e\u8fd0\u884c\u5206\u6790\u5373\u53ef\u66f4\u65b0\u3002',
+  dashboardEmpty: '\u8be5\u65e5\u5c1a\u65e0 AI \u5206\u6790',
+  dashboardEmptyHint:
+    '\u5148\u5728\u300c\u8bb0\u5f55\u300d\u9875\u4fdd\u5b58\u65e5\u8bb0\uff0c\u518d\u5728 Claude Code \u8fd0\u884c /analyze-records',
+  dashboardAbilityGrowth: '\u80fd\u529b\u589e\u957f\u70b9',
+  dashboardExperienceRichness: '\u7ecf\u5386\u4e30\u5bcc\u70b9',
+  dashboardMoodIndex: '\u5fc3\u60c5\u6307\u6570',
+  dashboardRisk: '\u98ce\u9669',
+  dashboardGuidance: '\u4eca\u65e5\u6307\u5bfc',
+  dashboardGuidanceEmpty: '\u6682\u65e0\u5efa\u8bae\uff0c\u8bf7\u67e5\u770b AI \u6d1e\u5bdf\u6216\u91cd\u65b0\u5206\u6790',
+  dashboardScorePending:
+    '仪表指数尚未生成（请用 manifest v5 重新运行 /analyze-records）',
+  dashboardDriftTitle: '近 7 日坐标漂移',
+  dashboardDriftEmpty: '记录坐标后显示漂移',
+  dashboardDriftBaseline: '常态区',
+  dashboardDriftToday: '今日',
+  dashboardMaLegend: '7 日均线（虚线）',
+  dashboardMaVsToday: (sign: string) => `较均线 ${sign}`,
+  dashboardLayerAlert: '\u8eab\u5fc3\u72b6\u6001\u4e0e\u98ce\u9669\u9884\u8b66',
+  dashboardLayerGrowth: '\u53cc\u5f15\u64ce\u52a8\u80fd\u8231',
+  dashboardLayerGuidance: '5% \u5fae\u8fed\u4ee3\u6307\u5357',
+  dashboardTrendUp: '\u8f83\u6628\u65e5\u4e0a\u5347',
+  dashboardTrendDown: '\u8f83\u6628\u65e5\u4e0b\u964d',
+  dashboardTrendStable: '\u8f83\u6628\u65e5\u6301\u5e73',
+  dashboardVsYesterday: '\u8f83\u6628\u65e5',
+  dashboardTagsTitle: '\u4ef7\u503c / \u8017\u80fd\u9ad8\u9891',
+  dashboardRelatedEntries: '\u76f8\u5173\u65e5\u8bb0',
+  dashboardViewEntry: (id: number) => `\u67e5\u770b\u8bb0\u5f55 #${id}`,
+  dashboardViewFullInsight: '\u67e5\u770b\u5b8c\u6574 AI \u5206\u6790 \u2192',
+  dashboardSelectDate: '\u67e5\u770b\u65e5\u671f',
+  dashboardDateToday: '\u4eca\u65e5',
+  dashboardDateYesterday: '\u6628\u65e5',
+  historyDailyIndex: (index: number, total: number) => `\u7b2c ${index} \u6761`,
+  historyDailyIndexShort: (index: number, total: number) => `#${index}/${total}`,
+  recordDailyIndexNew: (index: number) => `\u4eca\u65e5\u7b2c ${index} \u6761`,
+  recordDailyIndexEdit: (index: number, total: number) =>
+    `\u7f16\u8f91 \u00b7 \u7b2c ${index}/${total} \u6761`,
 
   // AI 洞察
   tabInsight: 'AI \u6d1e\u5bdf',
@@ -363,8 +390,6 @@ export const ZH = {
   insightPatternsTitle: '\u8bc6\u522b\u6a21\u5f0f',
   insightRecommendationsTitle: '\u884c\u52a8\u5efa\u8bae',
   insightAnalyzedAt: (t: string) => `\u5206\u6790\u65f6\u95f4\uff1a${t}`,
-  insightBannerTitle: (date: string) => `AI \u6d1e\u5bdf \u00b7 ${date}`,
-  insightViewDetail: '\u67e5\u770b\u8be6\u60c5',
   insightExpand: '\u5c55\u5f00\u8be6\u60c5 \u25bc',
   insightCollapse: '\u6536\u8d77 \u25b2',
   insightViewEntry: '\u67e5\u770b\u8bb0\u5f55 \u2192',

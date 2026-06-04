@@ -5,15 +5,17 @@ import AnalysisPage from './components/AnalysisPage'
 import EntryHistoryPage from './components/EntryHistoryPage'
 import SettingsPage from './components/SettingsPage'
 import AiInsightPage from './components/AiInsightPage'
+import DashboardPage from './components/DashboardPage'
 import CheckInPanel from './components/CheckInPanel'
 import { ZH } from './i18n/zh'
 
-type Tab = 'record' | 'history' | 'chart' | 'analysis' | 'insight' | 'settings'
+type Tab = 'record' | 'dashboard' | 'history' | 'chart' | 'analysis' | 'insight' | 'settings'
 
 /** 设为 true 可在顶栏重新显示「今日曲线」页签（含四象限矩阵，DayChart 组件仍保留） */
 const SHOW_CHART_TAB = true
 
 const TABS: { id: Tab; label: string }[] = [
+  { id: 'dashboard', label: ZH.tabDashboard },
   { id: 'record', label: ZH.tabRecord },
   { id: 'history', label: ZH.tabHistory },
   { id: 'chart', label: ZH.tabChart },
@@ -26,11 +28,11 @@ const NAV_TABS = SHOW_CHART_TAB ? TABS : TABS.filter((t) => t.id !== 'chart')
 
 function isCheckInPopup(): boolean {
   const mode = new URLSearchParams(window.location.search).get('mode') ?? ''
-  return mode === 'checkin' || mode === 'fatigue_check'
+  return mode === 'checkin'
 }
 
 export default function App() {
-  const [tab, setTab] = useState<Tab>('record')
+  const [tab, setTab] = useState<Tab>('dashboard')
   const [toast, setToast] = useState('')
   const [tagListsVersion, setTagListsVersion] = useState(0)
   const [historyEditId, setHistoryEditId] = useState<number | null>(null)
@@ -77,12 +79,18 @@ export default function App() {
       <main className={tab === 'record' ? 'main main--record' : 'main'}>
         {tab === 'record' && (
           <div className="main-record">
-            <RecordForm
-              key={tagListsVersion}
-              onSaved={() => showToast(ZH.toastSaved)}
-              onViewInsight={() => setTab('insight')}
-            />
+            <RecordForm key={tagListsVersion} onSaved={() => showToast(ZH.toastSaved)} />
           </div>
+        )}
+        {tab === 'dashboard' && (
+          <DashboardPage
+            key={tagListsVersion}
+            onEditEntry={(id) => {
+              setHistoryEditId(id)
+              setTab('history')
+            }}
+            onViewInsight={() => setTab('insight')}
+          />
         )}
         {tab === 'history' && (
           <EntryHistoryPage

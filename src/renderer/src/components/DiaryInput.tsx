@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useCallback, useLayoutEffect, useRef } from 'react'
+import { applyListContinuation } from '../utils/diaryListContinue'
 
 interface Props {
   value: string
@@ -12,7 +13,7 @@ interface Props {
   scrollable?: boolean
 }
 
-/** 日记输入框：弹窗随内容增高；记录页在固定区域内滚动 */
+/** 日记输入框：列表 Enter 自动续号；弹窗随内容增高；记录页在固定区域内滚动 */
 export default function DiaryInput({
   value,
   onChange,
@@ -35,12 +36,31 @@ export default function DiaryInput({
     el.style.height = `${Math.max(el.scrollHeight, minHeight)}px`
   }, [value, minRows, scrollable])
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key !== 'Enter' || e.shiftKey) return
+      const el = ref.current
+      if (!el) return
+      const result = applyListContinuation(value, el.selectionStart, el.selectionEnd)
+      if (!result) return
+      e.preventDefault()
+      onChange(result.nextValue)
+      const cursor = result.nextCursor
+      requestAnimationFrame(() => {
+        el.selectionStart = cursor
+        el.selectionEnd = cursor
+      })
+    },
+    [value, onChange]
+  )
+
   return (
     <textarea
       ref={ref}
       className={scrollable ? 'diary-input diary-input--scroll' : 'diary-input'}
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      onKeyDown={handleKeyDown}
       placeholder={placeholder}
       rows={scrollable ? minRows : minRows}
       autoFocus={autoFocus}
