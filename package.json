@@ -20,7 +20,7 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "dist": "npm run build && electron-builder --win",
+    "dist": "npm run build && electron-builder --win --publish never",
     "seed:ai-insight": "node scripts/seed-ai-insight-test.mjs"
   },
   "dependencies": {
